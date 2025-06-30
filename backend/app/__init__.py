@@ -44,8 +44,25 @@ def create_app():
     from app.routes.service_payments import service_payments_bp
     app.register_blueprint(service_payments_bp, url_prefix="/api/service-payments")
 
-    # Importar y registrar blueprints aquí (se agregarán luego)
-    # from .routes import api_bp
-    # app.register_blueprint(api_bp, url_prefix="/api")
+    # --- Registrar Blueprints de la API ---
 
+    from .api.auth import auth_bp
+    from .api.accounts import accounts_bp
+    from .api.incomes import incomes_bp
+    from .api.services import services_bp
+    from .api.loans import loans_bp
+    from .api.service_payments import service_payments_bp
+    from .api.loan_payments import loan_payments_bp
+    from .api.scheduled_incomes import scheduled_incomes_bp
+
+    # Registra cada blueprint con un prefijo de URL
+    app.register_blueprint(auth_bp, url_prefix='/api/auth')
+    app.register_blueprint(accounts_bp, url_prefix='/api/accounts')
+    app.register_blueprint(incomes_bp, url_prefix='/api/incomes')
+    app.register_blueprint(services_bp, url_prefix='/api/services')
+    app.register_blueprint(loans_bp, url_prefix='/api/loans')
+    app.register_blueprint(service_payments_bp, url_prefix='/api/service_payments')
+    app.register_blueprint(loan_payments_bp, url_prefix='/api/loan_payments')
+    app.register_blueprint(scheduled_incomes_bp, url_prefix='/api/scheduled_incomes')
+    
     return app

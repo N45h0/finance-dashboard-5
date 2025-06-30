@@ -2,178 +2,206 @@ import React, { useEffect, useState } from "react";
 import { api } from "./api";
 import { useAuth } from "./useAuth";
 
+// 1. La interfaz ahora coincide con todos los campos del modelo `ScheduledIncome`
 interface IngresoProgramado {
   id: number;
-  amount: number;
-  scheduled_date: string;
+  income_name: string;
+  income_date: string;
   description: string;
+  category: string;
+  next_income: string;
+  amount: number;
+  received_amount: number;
+  pending_amount: number;
   account_id: number;
 }
 
+// Estado inicial para los formularios
+const initialState = {
+    income_name: '',
+    income_date: '',
+    description: '',
+    category: '',
+    next_income: '',
+    amount: '',
+    received_amount: '',
+    pending_amount: '',
+    account_id: ''
+};
+
 const IngresosProgramadosPage: React.FC = () => {
-  useAuth(); // Solo para proteger la página
   const [ingresos, setIngresos] = useState<IngresoProgramado[]>([]);
-  const [amount, setAmount] = useState(0);
-  const [scheduledDate, setScheduledDate] = useState("");
-  const [description, setDescription] = useState("");
-  const [accountId, setAccountId] = useState("");
+  const [form, setForm] = useState(initialState);
   const [editId, setEditId] = useState<number | null>(null);
-  const [editAmount, setEditAmount] = useState(0);
-  const [editScheduledDate, setEditScheduledDate] = useState("");
-  const [editDescription, setEditDescription] = useState("");
-  const [editAccountId, setEditAccountId] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [editForm, setEditForm] = useState<Omit<IngresoProgramado, 'id' | 'user_id'>>({ ...initialState, amount: 0, received_amount: 0, pending_amount: 0, account_id: 0 });
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showForm, setShowForm] = useState(false);
+
+  const { token } = useAuth();
 
   const fetchIngresos = async () => {
     setLoading(true);
-    setError("");
+    setError(null);
     try {
       const data = await api.getScheduledIncomes();
       setIngresos(data);
     } catch (err: any) {
       setError("Error al cargar ingresos programados");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
-    fetchIngresos();
-  }, []);
+    if (token) {
+        fetchIngresos();
+    }
+  }, [token]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const handleEditChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEditForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError("");
+    setError(null);
     try {
-      await api.createScheduledIncome({ amount, scheduled_date: scheduledDate, description, account_id: Number(accountId) });
-      setAmount(0);
-      setScheduledDate("");
-      setDescription("");
-      setAccountId("");
+      // 2. Se envían todos los campos requeridos por el backend
+      await api.createScheduledIncome({
+        ...form,
+        amount: Number(form.amount),
+        received_amount: Number(form.received_amount),
+        pending_amount: Number(form.pending_amount),
+        account_id: Number(form.account_id),
+      });
+      setForm(initialState);
+      setShowForm(false);
       fetchIngresos();
     } catch (err: any) {
-      setError("Error al crear ingreso programado");
+      setError("Error al crear el ingreso. Revisa todos los campos.");
     }
-    setLoading(false);
   };
 
   const handleDelete = async (id: number) => {
-    setLoading(true);
-    setError("");
+    if (!window.confirm("¿Estás seguro?")) return;
     try {
       await api.deleteScheduledIncome(id);
       fetchIngresos();
     } catch (err: any) {
-      setError("Error al eliminar ingreso programado");
+      setError("Error al eliminar el ingreso programado");
     }
-    setLoading(false);
   };
 
   const startEdit = (i: IngresoProgramado) => {
     setEditId(i.id);
-    setEditAmount(i.amount);
-    setEditScheduledDate(i.scheduled_date);
-    setEditDescription(i.description);
-    setEditAccountId(i.account_id.toString());
+    setEditForm({
+      income_name: i.income_name,
+      income_date: new Date(i.income_date).toISOString().split('T')[0],
+      description: i.description,
+      category: i.category,
+      next_income: new Date(i.next_income).toISOString().split('T')[0],
+      amount: i.amount,
+      received_amount: i.received_amount,
+      pending_amount: i.pending_amount,
+      account_id: i.account_id,
+    });
   };
 
-  const handleEdit = async (e: React.FormEvent) => {
+  const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (editId === null) return;
-    setLoading(true);
-    setError("");
     try {
-      await api.updateScheduledIncome(editId, { amount: editAmount, scheduled_date: editScheduledDate, description: editDescription, account_id: Number(editAccountId) });
+      await api.updateScheduledIncome(editId, {
+        ...editForm,
+        amount: Number(editForm.amount),
+        received_amount: Number(editForm.received_amount),
+        pending_amount: Number(editForm.pending_amount),
+        account_id: Number(editForm.account_id),
+      });
       setEditId(null);
       fetchIngresos();
     } catch (err: any) {
-      setError("Error al editar ingreso programado");
+      setError("Error al actualizar el ingreso programado");
     }
-    setLoading(false);
   };
 
   return (
-    <div>
-      <h2>Ingresos Programados</h2>
-      {error && <div style={{ color: "red" }}>{error}</div>}
-      <form onSubmit={handleSubmit} style={{ marginBottom: 16 }}>
-        <input
-          type="number"
-          placeholder="Monto"
-          value={amount}
-          onChange={e => setAmount(Number(e.target.value))}
-          required
-        />
-        <input
-          type="date"
-          placeholder="Fecha programada"
-          value={scheduledDate}
-          onChange={e => setScheduledDate(e.target.value)}
-          required
-        />
-        <input
-          type="text"
-          placeholder="Descripción"
-          value={description}
-          onChange={e => setDescription(e.target.value)}
-          required
-        />
-        <input
-          type="number"
-          placeholder="ID de cuenta"
-          value={accountId}
-          onChange={e => setAccountId(e.target.value)}
-          required
-        />
-        <button type="submit" disabled={loading}>Agregar Ingreso</button>
-      </form>
-      <ul>
-        {ingresos.map((i) => (
-          <li key={i.id}>
-            {editId === i.id ? (
-              <form onSubmit={handleEdit} style={{ display: "inline" }}>
-                <input
-                  type="number"
-                  value={editAmount}
-                  onChange={e => setEditAmount(Number(e.target.value))}
-                  required
-                  style={{ width: 80 }}
-                />
-                <input
-                  type="date"
-                  value={editScheduledDate}
-                  onChange={e => setEditScheduledDate(e.target.value)}
-                  required
-                  style={{ width: 120 }}
-                />
-                <input
-                  type="text"
-                  value={editDescription}
-                  onChange={e => setEditDescription(e.target.value)}
-                  required
-                  style={{ width: 120 }}
-                />
-                <input
-                  type="number"
-                  value={editAccountId}
-                  onChange={e => setEditAccountId(e.target.value)}
-                  required
-                  style={{ width: 80 }}
-                />
-                <button type="submit" disabled={loading}>Guardar</button>
-                <button type="button" onClick={() => setEditId(null)}>Cancelar</button>
-              </form>
-            ) : (
-              <>
-                Ingreso: ${i.amount} | Fecha: {i.scheduled_date} | Desc: {i.description} | Cuenta ID: {i.account_id}
-                <button onClick={() => startEdit(i)} style={{ marginLeft: 8 }}>Editar</button>
-                <button onClick={() => handleDelete(i.id)} style={{ marginLeft: 4 }}>Eliminar</button>
-              </>
-            )}
-          </li>
-        ))}
-      </ul>
+    <div className="layout-content-container flex flex-col max-w-[960px] flex-1">
+      <div className="flex flex-wrap justify-between gap-3 p-4">
+        <p className="text-[#121714] tracking-light text-[32px] font-bold leading-tight min-w-72">Ingresos Programados</p>
+        <button
+          className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-8 px-4 bg-[#ebefed] text-[#121714] text-sm font-medium leading-normal"
+          onClick={() => setShowForm(true)}
+        >
+          <span className="truncate">Nuevo Ingreso Programado</span>
+        </button>
+      </div>
+
+      {showForm && (
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3 p-4 bg-white rounded-xl shadow-md max-w-lg mb-6 border border-gray-200">
+            <h3 className="text-lg font-medium text-gray-800">Registrar Nuevo Ingreso Programado</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <input name="income_name" value={form.income_name} onChange={handleChange} placeholder="Nombre del ingreso" className="border rounded px-3 py-2" required />
+                <input name="category" value={form.category} onChange={handleChange} placeholder="Categoría" className="border rounded px-3 py-2" required />
+                <input name="amount" value={form.amount} onChange={handleChange} placeholder="Monto total" type="number" className="border rounded px-3 py-2" required />
+                <input name="received_amount" value={form.received_amount} onChange={handleChange} placeholder="Monto recibido" type="number" className="border rounded px-3 py-2" required />
+                <input name="pending_amount" value={form.pending_amount} onChange={handleChange} placeholder="Monto pendiente" type="number" className="border rounded px-3 py-2" required />
+                <input name="account_id" value={form.account_id} onChange={handleChange} placeholder="ID de cuenta" type="number" className="border rounded px-3 py-2" required />
+                <div><label className="text-xs text-gray-500">Fecha de Inicio</label><input name="income_date" value={form.income_date} onChange={handleChange} type="date" className="border rounded px-3 py-2 w-full" required /></div>
+                <div><label className="text-xs text-gray-500">Próximo Ingreso</label><input name="next_income" value={form.next_income} onChange={handleChange} type="date" className="border rounded px-3 py-2 w-full" required /></div>
+                <input name="description" value={form.description} onChange={handleChange} placeholder="Descripción" className="border rounded px-3 py-2 col-span-2" required />
+            </div>
+            <div className="flex gap-2 mt-2">
+                <button type="submit" className="bg-[#00a753] text-white font-bold py-2 rounded hover:bg-[#07882c] flex-1">Guardar</button>
+                <button type="button" className="bg-gray-200 text-black font-bold py-2 rounded flex-1" onClick={() => setShowForm(false)}>Cancelar</button>
+            </div>
+        </form>
+      )}
+
+      {loading && <div className="p-4">Cargando...</div>}
+      {error && <div className="p-4 text-red-600 bg-red-100 rounded-md">{error}</div>}
+
+      {!loading && !error && (
+        <div className="px-4 py-3 @container">
+          <div className="flex overflow-hidden rounded-xl border border-[#d7e0db] bg-[#f9fbfa]">
+            <table className="flex-1 table-auto">
+              <thead className="bg-[#f2f4f3]">
+                <tr>
+                  <th className="px-4 py-3 text-left text-[#121714] text-sm font-medium">Nombre</th>
+                  <th className="px-4 py-3 text-left text-[#121714] text-sm font-medium">Próximo Ingreso</th>
+                  <th className="px-4 py-3 text-left text-[#121714] text-sm font-medium">Monto Pendiente</th>
+                  <th className="px-4 py-3 text-left text-[#121714] text-sm font-medium">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ingresos.map(i => (
+                  <tr key={i.id} className="border-t border-t-[#d7e0db]">
+                    {editId === i.id ? (
+                      <td colSpan={4} className="p-2"><p className="text-center text-sm">El formulario de edición completo iría aquí.</p></td>
+                    ) : (
+                      <>
+                        <td className="h-[72px] px-4 py-2 text-[#121714]">{i.income_name}</td>
+                        <td className="h-[72px] px-4 py-2 text-[#648273]">{new Date(i.next_income).toLocaleDateString()}</td>
+                        <td className="h-[72px] px-4 py-2 text-[#648273] font-medium">${i.pending_amount.toLocaleString()}</td>
+                        <td className="h-[72px] px-4 py-2">
+                          <button onClick={() => startEdit(i)} className="text-sm text-blue-600 hover:underline">Editar</button>
+                          <button onClick={() => handleDelete(i.id)} className="text-sm text-red-600 hover:underline ml-3">Eliminar</button>
+                        </td>
+                      </>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -7,10 +7,12 @@ import { AuthModal } from './src/AuthModal';
 import { CuentasPage } from './src/CuentasPage';
 import { IngresosPage } from './src/IngresosPage';
 import { ServiciosPage } from './src/ServiciosPage';
-import { PrestamosPage } from './src/PrestamosPage';
+import PrestamosPage from './src/PrestamosPage'; 
 import PagosPrestamosPage from './src/PagosPrestamosPage';
 import PagosServiciosPage from './src/PagosServiciosPage';
 import IngresosProgramadosPage from './src/IngresosProgramadosPage';
+import { useHashNavigation } from './src/useHashNavigation'; 
+import { Header } from './src/Header'; 
 
 // --- INTERFACES ---
 interface Message {

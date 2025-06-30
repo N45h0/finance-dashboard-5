@@ -25,13 +25,28 @@ async function request(endpoint: string, options: RequestInit = {}) {
     headers: { ...headers, ...(options.headers || {}) },
   });
   if (!res.ok) {
-    const error = await res.json().catch(() => ({}));
-    throw new Error(error.msg || 'Error de red');
+    const error = await res.json().catch(() => ({ msg: 'Ocurrió un error en el servidor' }));
+    // Lanza el mensaje de error del backend, o uno genérico si no lo hay.
+    throw new Error(error.msg || 'Error de red o del servidor');
+  }
+  // Para métodos DELETE que pueden no devolver un cuerpo JSON
+  if (res.status === 204 || res.headers.get('Content-Length') === '0') {
+      return null; 
   }
   return res.json();
 }
 
+// --- Tipos para los cuerpos de las solicitudes (Payloads) ---
+// Esto mejora la claridad y previene errores.
+type AccountPayload = { account_name: string; card: string; balance: number };
+type IncomePayload = { income_name: string; income_date: string; description: string; category: string; amount: number; account_id: number };
+type ServicePayload = { service_name: string; description: string; date: string; category: string; price: number; reamining_price: number; account_id: number; expiration_date: string };
+type LoanPayload = { loan_name: string; holder: string; price: number; description: string | null; date: string; quota: number | null; tea: number | null; reamining_price: number; account_id: number; expiration_date: string; };
+type PaymentPayload = { amount: number; date: string; description: string | null; };
+type ScheduledIncomePayload = { income_name: string; income_date: string; description: string; category: string; next_income: string; amount: number; received_amount: number; pending_amount: number; account_id: number; };
+
 export const api = {
+  // --- Auth ---
   async login(email: string, password: string) {
     const data = await request('/auth/login', {
       method: 'POST',
@@ -49,112 +64,88 @@ export const api = {
   async me() {
     return request('/auth/me');
   },
-  async getAccounts() {
-    return request('/accounts/');
+  
+  // --- Accounts ---
+  async getAccounts() { return request('/accounts/'); },
+  async createAccount(account: AccountPayload) {
+    return request('/accounts/', { method: 'POST', body: JSON.stringify(account) });
   },
-  async createAccount(account: { account_name: string; card: string; balance: number }) {
-    return request('/accounts/', {
-      method: 'POST',
-      body: JSON.stringify(account),
-    });
+  async updateAccount(id: number, account: Partial<AccountPayload>) {
+    return request(`/accounts/${id}`, { method: 'PUT', body: JSON.stringify(account) });
   },
-  async getIncomes() {
-    return request('/incomes/');
+  async deleteAccount(id: number) {
+    return request(`/accounts/${id}`, { method: 'DELETE' });
   },
-  async createIncome(income: { income_name: string; income_date: string; description: string; category: string; amount: number; account_id: number }) {
-    return request('/incomes/', {
-      method: 'POST',
-      body: JSON.stringify(income),
-    });
+
+  // --- Incomes ---
+  async getIncomes() { return request('/incomes/'); },
+  async createIncome(income: IncomePayload) {
+    return request('/incomes/', { method: 'POST', body: JSON.stringify(income) });
   },
-  async getServices() {
-    return request('/services/');
+  async updateIncome(id: number, income: Partial<IncomePayload>) {
+    return request(`/incomes/${id}`, { method: 'PUT', body: JSON.stringify(income) });
   },
-  async createService(service: { service_name: string; description: string; date: string; category: string; price: number; reamining_price: number; account_id: number; expiration_date: string }) {
-    return request('/services/', {
-      method: 'POST',
-      body: JSON.stringify(service),
-    });
+  async deleteIncome(id: number) {
+    return request(`/incomes/${id}`, { method: 'DELETE' });
   },
-  async getLoans() {
-    return request('/loans/');
+  
+  // --- Services ---
+  async getServices() { return request('/services/'); },
+  async createService(service: ServicePayload) {
+    return request('/services/', { method: 'POST', body: JSON.stringify(service) });
   },
-  async createLoan(loan: { amount: number; description: string }) {
-    return request('/loans/', {
-      method: 'POST',
-      body: JSON.stringify(loan),
-    });
+  async updateService(id: number, service: Partial<ServicePayload>) {
+    return request(`/services/${id}`, { method: 'PUT', body: JSON.stringify(service) });
   },
-  async updateLoan(id: number, loan: { amount?: number; description?: string }) {
-    return request(`/loans/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(loan),
-    });
+  async deleteService(id: number) {
+    return request(`/services/${id}`, { method: 'DELETE' });
+  },
+
+  // --- Loans ---
+  async getLoans() { return request('/loans/'); },
+  async createLoan(loan: LoanPayload) { // CORREGIDO
+    return request('/loans/', { method: 'POST', body: JSON.stringify(loan) });
+  },
+  async updateLoan(id: number, loan: Partial<LoanPayload>) { // CORREGIDO
+    return request(`/loans/${id}`, { method: 'PUT', body: JSON.stringify(loan) });
   },
   async deleteLoan(id: number) {
-    return request(`/loans/${id}`, {
-      method: 'DELETE',
-    });
+    return request(`/loans/${id}`, { method: 'DELETE' });
   },
-  async getLoanPayments() {
-    return request('/loan_payments/');
+  
+  // --- Loan Payments ---
+  async getLoanPayments() { return request('/loan_payments/'); },
+  async createLoanPayment(payment: PaymentPayload & { loan_id: number }) { // CORREGIDO
+    return request('/loan_payments/', { method: 'POST', body: JSON.stringify(payment) });
   },
-  async createLoanPayment(payment: { amount: number; payment_date: string; loan_id: number }) {
-    return request('/loan_payments/', {
-      method: 'POST',
-      body: JSON.stringify(payment),
-    });
-  },
-  async updateLoanPayment(id: number, payment: { amount?: number; payment_date?: string; loan_id?: number }) {
-    return request(`/loan_payments/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(payment),
-    });
+  async updateLoanPayment(id: number, payment: Partial<PaymentPayload & { loan_id: number }>) { // CORREGIDO
+    return request(`/loan_payments/${id}`, { method: 'PUT', body: JSON.stringify(payment) });
   },
   async deleteLoanPayment(id: number) {
-    return request(`/loan_payments/${id}`, {
-      method: 'DELETE',
-    });
+    return request(`/loan_payments/${id}`, { method: 'DELETE' });
   },
-  async getServicePayments() {
-    return request('/service_payments/');
+
+  // --- Service Payments ---
+  async getServicePayments() { return request('/service_payments/'); },
+  async createServicePayment(payment: PaymentPayload & { service_id: number }) { // CORREGIDO
+    return request('/service_payments/', { method: 'POST', body: JSON.stringify(payment) });
   },
-  async createServicePayment(payment: { amount: number; payment_date: string; service_id: number }) {
-    return request('/service_payments/', {
-      method: 'POST',
-      body: JSON.stringify(payment),
-    });
-  },
-  async updateServicePayment(id: number, payment: { amount?: number; payment_date?: string; service_id?: number }) {
-    return request(`/service_payments/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(payment),
-    });
+  async updateServicePayment(id: number, payment: Partial<PaymentPayload & { service_id: number }>) { // CORREGIDO
+    return request(`/service_payments/${id}`, { method: 'PUT', body: JSON.stringify(payment) });
   },
   async deleteServicePayment(id: number) {
-    return request(`/service_payments/${id}`, {
-      method: 'DELETE',
-    });
+    return request(`/service_payments/${id}`, { method: 'DELETE' });
   },
-  async getScheduledIncomes() {
-    return request('/scheduled_incomes/');
+
+  // --- Scheduled Incomes ---
+  async getScheduledIncomes() { return request('/scheduled_incomes/'); },
+  async createScheduledIncome(income: ScheduledIncomePayload) { // CORREGIDO
+    return request('/scheduled_incomes/', { method: 'POST', body: JSON.stringify(income) });
   },
-  async createScheduledIncome(income: { amount: number; scheduled_date: string; description: string; account_id: number }) {
-    return request('/scheduled_incomes/', {
-      method: 'POST',
-      body: JSON.stringify(income),
-    });
-  },
-  async updateScheduledIncome(id: number, income: { amount?: number; scheduled_date?: string; description?: string; account_id?: number }) {
-    return request(`/scheduled_incomes/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(income),
-    });
+  async updateScheduledIncome(id: number, income: Partial<ScheduledIncomePayload>) { // CORREGIDO
+    return request(`/scheduled_incomes/${id}`, { method: 'PUT', body: JSON.stringify(income) });
   },
   async deleteScheduledIncome(id: number) {
-    return request(`/scheduled_incomes/${id}`, {
-      method: 'DELETE',
-    });
+    return request(`/scheduled_incomes/${id}`, { method: 'DELETE' });
   },
-  // Agrega aquí más métodos para loans, services, etc.
 };
