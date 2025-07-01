@@ -80,9 +80,8 @@ def google_callback():
 
     # Redirigir al frontend con el token
     # Esta URL debe coincidir con tu app de frontend
-    frontend_url = "https://tu-app.vercel.app" # O http://localhost:5173 para desarrollo
+    frontend_url = os.environ.get('FRONTEND_URL', 'http://localhost:5173')
     return redirect(f"{frontend_url}/#token={access_token}")
-
 # --- FIN DE LA IMPLEMENTACIÓN DE GOOGLE OAUTH ---
 
 @auth_bp.route('/register', methods=['POST'])
