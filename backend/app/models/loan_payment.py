@@ -8,3 +8,4 @@ class LoanPayment(db.Model):
     description = db.Column(db.Text, nullable=True)
     loan_id = db.Column(db.Integer, db.ForeignKey('loans.id', ondelete='CASCADE'))
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'))
+    loan = db.relationship('Loan', back_populates='payments')

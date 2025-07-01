@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from app.models.loan_payment import LoanPayment
 from app import db
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from datetime import datetime
 
 loan_payments_bp = Blueprint('loan_payments_bp', __name__)
 
@@ -25,12 +26,19 @@ def get_loan_payments():
 def create_loan_payment():
     user_id = get_jwt_identity()
     data = request.get_json()
-    required = ['amount', 'date', 'loan_id']
-    if not data or not all(k in data for k in required):
-        return jsonify({'msg': 'Faltan datos'}), 400
+
+    required_fields = ['amount', 'date', 'loan_id']
+    if not all(field in data and data[field] not in [None, ''] for field in required_fields):
+        return jsonify({'msg': 'Faltan campos obligatorios'}), 400
+
+    try:
+        date_obj = datetime.fromisoformat(data['date']).date()
+    except ValueError:
+        return jsonify({'msg': 'Formato de fecha inválido. Usar YYYY-MM-DD.'}), 400
+
     payment = LoanPayment(
         amount=data['amount'],
-        date=data['date'],
+        date=date_obj,
         description=data.get('description'),
         loan_id=data['loan_id'],
         user_id=user_id
@@ -47,6 +55,13 @@ def update_loan_payment(payment_id):
     if not payment:
         return jsonify({'msg': 'Pago de préstamo no encontrado'}), 404
     data = request.get_json()
+
+    try:
+        if 'date' in data and data['date']:
+            data['date'] = datetime.fromisoformat(data['date']).date()
+    except (ValueError, TypeError):
+        return jsonify({'msg': 'Formato de fecha inválido en la actualización.'}), 400
+
     for field in ['amount', 'date', 'description', 'loan_id']:
         if field in data:
             setattr(payment, field, data[field])

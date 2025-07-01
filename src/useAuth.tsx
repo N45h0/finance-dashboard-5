@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { api, getToken, removeToken } from './api';
+import { api, getToken, setToken as setTokenInStorage, removeToken } from './api';
 
 interface User {
   id: number;
@@ -9,7 +9,8 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<void>;
+  token: string | null;
+  login: (email: string, password:string) => Promise<void>;
   register: (username: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   loading: boolean;
@@ -22,24 +23,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [token, setToken] = useState<string | null>(getToken());
 
   useEffect(() => {
-    if (getToken()) {
-      api.me().then(setUser).catch(() => removeToken()).finally(() => setLoading(false));
+    if (token) {
+      api.me().then(setUser).catch(() => {
+        removeToken();
+        setToken(null);
+      }).finally(() => setLoading(false));
     } else {
       setLoading(false);
     }
-  }, []);
+  }, [token]);
 
   const login = async (email: string, password: string) => {
     setError(null);
     setLoading(true);
     try {
-      const user = await api.login(email, password);
-      setUser(user);
+      const data = await api.login(email, password);
+      setTokenInStorage(data.access_token);
+      setToken(data.access_token);
+      setUser(data.user);
     } catch (e: any) {
       setError(e.message);
       removeToken();
+      setToken(null);
+      throw e; // Re-lanzamos el error para que el componente que llama sepa que falló
     } finally {
       setLoading(false);
     }
@@ -54,6 +63,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (e: any) {
       setError(e.message);
       removeToken();
+      setToken(null);
+      throw e; // Re-lanzamos el error
     } finally {
       setLoading(false);
     }
@@ -62,10 +73,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = () => {
     removeToken();
     setUser(null);
+    setToken(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, loading, error }}>
+    <AuthContext.Provider value={{ user, token, login, register, logout, loading, error }}>
       {children}
     </AuthContext.Provider>
   );

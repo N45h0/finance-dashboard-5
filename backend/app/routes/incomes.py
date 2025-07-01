@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from app.models.income import Income
 from app import db
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from datetime import datetime
 
 incomes_bp = Blueprint('incomes_bp', __name__)
 
@@ -17,11 +18,19 @@ def get_incomes():
 def create_income():
     user_id = get_jwt_identity()
     data = request.get_json()
-    if not data or not all(k in data for k in ('income_name', 'income_date', 'amount', 'category', 'account_id')):
-        return jsonify({'msg': 'Faltan datos'}), 400
+    
+    required_fields = ['income_name', 'income_date', 'amount', 'category', 'account_id']
+    if not all(field in data and data[field] not in [None, ''] for field in required_fields):
+        return jsonify({'msg': 'Faltan campos obligatorios'}), 400
+    
+    try:
+        income_date_obj = datetime.fromisoformat(data['income_date']).date()
+    except ValueError:
+        return jsonify({'msg': 'Formato de fecha inválido. Usar YYYY-MM-DD.'}), 400
+
     income = Income(
         income_name=data['income_name'],
-        income_date=data['income_date'],
+        income_date=income_date_obj,
         description=data.get('description'),
         category=data['category'],
         amount=data['amount'],
@@ -40,6 +49,13 @@ def update_income(income_id):
     if not income:
         return jsonify({'msg': 'Ingreso no encontrado'}), 404
     data = request.get_json()
+    
+    try:
+        if 'income_date' in data and data['income_date']:
+            data['income_date'] = datetime.fromisoformat(data['income_date']).date()
+    except (ValueError, TypeError):
+        return jsonify({'msg': 'Formato de fecha inválido en la actualización.'}), 400
+
     for field in ['income_name', 'income_date', 'description', 'category', 'amount', 'account_id']:
         if field in data:
             setattr(income, field, data[field])

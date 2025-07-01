@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from app.models.scheduled_income import ScheduledIncome
 from app import db
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from datetime import datetime
 
 scheduled_incomes_bp = Blueprint('scheduled_incomes_bp', __name__)
 
@@ -30,15 +31,23 @@ def get_scheduled_incomes():
 def create_scheduled_income():
     user_id = get_jwt_identity()
     data = request.get_json()
-    required = ['income_name', 'income_date', 'description', 'category', 'next_income', 'amount', 'received_amount', 'pending_amount', 'account_id']
-    if not data or not all(k in data for k in required):
-        return jsonify({'msg': 'Faltan datos'}), 400
+    
+    required_fields = ['income_name', 'income_date', 'description', 'category', 'next_income', 'amount', 'received_amount', 'pending_amount', 'account_id']
+    if not all(field in data and data[field] not in [None, ''] for field in required_fields):
+        return jsonify({'msg': 'Faltan campos obligatorios'}), 400
+
+    try:
+        income_date_obj = datetime.fromisoformat(data['income_date']).date()
+        next_income_obj = datetime.fromisoformat(data['next_income']).date()
+    except ValueError:
+        return jsonify({'msg': 'Formato de fecha inválido. Usar YYYY-MM-DD.'}), 400
+
     income = ScheduledIncome(
         income_name=data['income_name'],
-        income_date=data['income_date'],
+        income_date=income_date_obj,
         description=data['description'],
         category=data['category'],
-        next_income=data['next_income'],
+        next_income=next_income_obj,
         amount=data['amount'],
         received_amount=data['received_amount'],
         pending_amount=data['pending_amount'],
@@ -57,6 +66,15 @@ def update_scheduled_income(income_id):
     if not income:
         return jsonify({'msg': 'Ingreso programado no encontrado'}), 404
     data = request.get_json()
+
+    try:
+        if 'income_date' in data and data['income_date']:
+            data['income_date'] = datetime.fromisoformat(data['income_date']).date()
+        if 'next_income' in data and data['next_income']:
+            data['next_income'] = datetime.fromisoformat(data['next_income']).date()
+    except (ValueError, TypeError):
+        return jsonify({'msg': 'Formato de fecha inválido en la actualización.'}), 400
+    
     for field in ['income_name', 'income_date', 'description', 'category', 'next_income', 'amount', 'received_amount', 'pending_amount', 'account_id']:
         if field in data:
             setattr(income, field, data[field])

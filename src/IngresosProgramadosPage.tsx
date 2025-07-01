@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { api } from "./api";
 import { useAuth } from "./useAuth";
+import { Account } from "./CuentasPage";
+import { formatDate } from "./utils";
+import DatePicker from 'react-datepicker';
+import "react-datepicker/dist/react-datepicker.css";
 
-// 1. La interfaz ahora coincide con todos los campos del modelo `ScheduledIncome`
 interface IngresoProgramado {
   id: number;
   income_name: string;
@@ -16,7 +19,6 @@ interface IngresoProgramado {
   account_id: number;
 }
 
-// Estado inicial para los formularios
 const initialState = {
     income_name: '',
     income_date: '',
@@ -29,17 +31,16 @@ const initialState = {
     account_id: ''
 };
 
-const IngresosProgramadosPage: React.FC = () => {
+export const IngresosProgramadosPage: React.FC = () => {
   const [ingresos, setIngresos] = useState<IngresoProgramado[]>([]);
   const [form, setForm] = useState(initialState);
   const [editId, setEditId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState<Omit<IngresoProgramado, 'id' | 'user_id'>>({ ...initialState, amount: 0, received_amount: 0, pending_amount: 0, account_id: 0 });
-
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
-
   const { token } = useAuth();
+  const [availableAccounts, setAvailableAccounts] = useState<Account[]>([]);
 
   const fetchIngresos = async () => {
     setLoading(true);
@@ -54,25 +55,39 @@ const IngresosProgramadosPage: React.FC = () => {
     }
   };
 
+  const fetchAccounts = async () => {
+    try {
+      const accountsData = await api.getAccounts();
+      setAvailableAccounts(accountsData);
+      if (accountsData.length > 0) {
+        setForm(prev => ({ ...prev, account_id: accountsData[0].id.toString() }));
+      }
+    } catch (e) { console.error("Error al cargar las cuentas", e); }
+  };
+
   useEffect(() => {
     if (token) {
         fetchIngresos();
+        fetchAccounts();
     }
   }, [token]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleEditChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setEditForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!form.account_id || !form.income_date || !form.next_income) {
+        setError("Por favor, completa todos los campos requeridos.");
+        return;
+    }
     setError(null);
     try {
-      // 2. Se envían todos los campos requeridos por el backend
       await api.createScheduledIncome({
         ...form,
         amount: Number(form.amount),
@@ -132,11 +147,11 @@ const IngresosProgramadosPage: React.FC = () => {
   };
 
   return (
-    <div className="layout-content-container flex flex-col max-w-[960px] flex-1">
+    <div className="layout-content-container flex flex-col max-w-[960px] flex-1 w-full">
       <div className="flex flex-wrap justify-between gap-3 p-4">
         <p className="text-[#121714] tracking-light text-[32px] font-bold leading-tight min-w-72">Ingresos Programados</p>
         <button
-          className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-8 px-4 bg-[#ebefed] text-[#121714] text-sm font-medium leading-normal"
+          className="flex w-full md:w-auto min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-10 px-4 bg-[#ebefed] text-[#121714] text-sm font-medium leading-normal"
           onClick={() => setShowForm(true)}
         >
           <span className="truncate">Nuevo Ingreso Programado</span>
@@ -152,9 +167,36 @@ const IngresosProgramadosPage: React.FC = () => {
                 <input name="amount" value={form.amount} onChange={handleChange} placeholder="Monto total" type="number" className="border rounded px-3 py-2" required />
                 <input name="received_amount" value={form.received_amount} onChange={handleChange} placeholder="Monto recibido" type="number" className="border rounded px-3 py-2" required />
                 <input name="pending_amount" value={form.pending_amount} onChange={handleChange} placeholder="Monto pendiente" type="number" className="border rounded px-3 py-2" required />
-                <input name="account_id" value={form.account_id} onChange={handleChange} placeholder="ID de cuenta" type="number" className="border rounded px-3 py-2" required />
-                <div><label className="text-xs text-gray-500">Fecha de Inicio</label><input name="income_date" value={form.income_date} onChange={handleChange} type="date" className="border rounded px-3 py-2 w-full" required /></div>
-                <div><label className="text-xs text-gray-500">Próximo Ingreso</label><input name="next_income" value={form.next_income} onChange={handleChange} type="date" className="border rounded px-3 py-2 w-full" required /></div>
+                <select name="account_id" value={form.account_id} onChange={handleChange} className="border rounded px-3 py-2 bg-white" required>
+                  <option value="" disabled>-- Asociar a una cuenta --</option>
+                  {availableAccounts.map(account => (
+                    <option key={account.id} value={account.id}>{account.account_name}</option>
+                  ))}
+                </select>
+                <div>
+                  <label className="text-xs text-gray-500">Fecha de Inicio</label>
+                  <DatePicker
+                      selected={form.income_date ? new Date(form.income_date) : null}
+                      onChange={(date) => setForm(prev => ({ ...prev, income_date: date?.toISOString().split('T')[0] || '' }))}
+                      dateFormat="dd/MM/yyyy"
+                      placeholderText="dd/mm/yyyy"
+                      className="border rounded px-3 py-2 w-full"
+                      locale="es"
+                      required
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500">Próximo Ingreso</label>
+                  <DatePicker
+                      selected={form.next_income ? new Date(form.next_income) : null}
+                      onChange={(date) => setForm(prev => ({ ...prev, next_income: date?.toISOString().split('T')[0] || '' }))}
+                      dateFormat="dd/MM/yyyy"
+                      placeholderText="dd/mm/yyyy"
+                      className="border rounded px-3 py-2 w-full"
+                      locale="es"
+                      required
+                  />
+                </div>
                 <input name="description" value={form.description} onChange={handleChange} placeholder="Descripción" className="border rounded px-3 py-2 col-span-2" required />
             </div>
             <div className="flex gap-2 mt-2">
@@ -168,8 +210,9 @@ const IngresosProgramadosPage: React.FC = () => {
       {error && <div className="p-4 text-red-600 bg-red-100 rounded-md">{error}</div>}
 
       {!loading && !error && (
-        <div className="px-4 py-3 @container">
-          <div className="flex overflow-hidden rounded-xl border border-[#d7e0db] bg-[#f9fbfa]">
+        <div className="w-full px-4 py-3">
+          {/* VISTA DE TABLA PARA ESCRITORIO */}
+          <div className="hidden lg:flex overflow-hidden rounded-xl border border-[#d7e0db] bg-[#f9fbfa]">
             <table className="flex-1 table-auto">
               <thead className="bg-[#f2f4f3]">
                 <tr>
@@ -187,7 +230,7 @@ const IngresosProgramadosPage: React.FC = () => {
                     ) : (
                       <>
                         <td className="h-[72px] px-4 py-2 text-[#121714]">{i.income_name}</td>
-                        <td className="h-[72px] px-4 py-2 text-[#648273]">{new Date(i.next_income).toLocaleDateString()}</td>
+                        <td className="h-[72px] px-4 py-2 text-[#648273]">{formatDate(i.next_income)}</td>
                         <td className="h-[72px] px-4 py-2 text-[#648273] font-medium">${i.pending_amount.toLocaleString()}</td>
                         <td className="h-[72px] px-4 py-2">
                           <button onClick={() => startEdit(i)} className="text-sm text-blue-600 hover:underline">Editar</button>
@@ -199,6 +242,36 @@ const IngresosProgramadosPage: React.FC = () => {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* VISTA DE TARJETAS PARA MÓVIL */}
+          <div className="block lg:hidden space-y-4">
+            {ingresos.map(i => (
+              <div key={i.id} className="bg-white p-4 rounded-lg shadow-md border border-gray-200">
+                <div className="flex justify-between items-start">
+                    <span className="font-bold text-lg text-[#121714]">{i.income_name}</span>
+                    <span className="text-sm text-gray-500">{i.category}</span>
+                </div>
+                <div className="mt-4 space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">Próximo Ingreso:</span>
+                    <span className="text-sm font-medium">{formatDate(i.next_income)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">Monto Pendiente:</span>
+                    <span className="text-sm font-bold text-blue-600">${i.pending_amount.toLocaleString()}</span>
+                  </div>
+                   <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">Monto Total:</span>
+                    <span className="text-sm font-medium">${i.amount.toLocaleString()}</span>
+                  </div>
+                </div>
+                <div className="mt-4 pt-2 border-t flex justify-end gap-4">
+                    <button onClick={() => startEdit(i)} className="text-sm text-blue-600 font-medium">Editar</button>
+                    <button onClick={() => handleDelete(i.id)} className="text-sm text-red-600 font-medium">Eliminar</button>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}

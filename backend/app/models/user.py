@@ -9,6 +9,10 @@ class User(db.Model):
     password_hash = db.Column(db.String(255))
     balance = db.Column(db.Integer, default=0)
     email_conf = db.Column(db.Boolean, default=False)
+    
+    # --- LÍNEA AÑADIDA ---
+    # Esto crea la relación inversa para poder usar `user.accounts`
+    accounts = db.relationship('Account', back_populates='user', cascade="all, delete-orphan")
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)

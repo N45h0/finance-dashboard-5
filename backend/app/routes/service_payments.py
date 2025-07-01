@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from app.models.service_payment import ServicePayment
 from app import db
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from datetime import datetime
 
 service_payments_bp = Blueprint('service_payments_bp', __name__)
 
@@ -25,12 +26,19 @@ def get_service_payments():
 def create_service_payment():
     user_id = get_jwt_identity()
     data = request.get_json()
-    required = ['amount', 'date', 'service_id']
-    if not data or not all(k in data for k in required):
-        return jsonify({'msg': 'Faltan datos'}), 400
+
+    required_fields = ['amount', 'date', 'service_id']
+    if not all(field in data and data[field] not in [None, ''] for field in required_fields):
+        return jsonify({'msg': 'Faltan campos obligatorios'}), 400
+    
+    try:
+        date_obj = datetime.fromisoformat(data['date']).date()
+    except ValueError:
+        return jsonify({'msg': 'Formato de fecha inválido. Usar YYYY-MM-DD.'}), 400
+
     payment = ServicePayment(
         amount=data['amount'],
-        date=data['date'],
+        date=date_obj,
         description=data.get('description'),
         service_id=data['service_id'],
         user_id=user_id
@@ -47,6 +55,13 @@ def update_service_payment(payment_id):
     if not payment:
         return jsonify({'msg': 'Pago de servicio no encontrado'}), 404
     data = request.get_json()
+
+    try:
+        if 'date' in data and data['date']:
+            data['date'] = datetime.fromisoformat(data['date']).date()
+    except (ValueError, TypeError):
+        return jsonify({'msg': 'Formato de fecha inválido en la actualización.'}), 400
+
     for field in ['amount', 'date', 'description', 'service_id']:
         if field in data:
             setattr(payment, field, data[field])

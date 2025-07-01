@@ -1,8 +1,10 @@
 from flask import Blueprint, request, jsonify
 from app.models.user import User
+# --- INICIO DE LA CORRECIÓN ---
+from app.models.account import Account # 1. Importar el modelo Account
+# --- FIN DE LA CORRECIÓN ---
 from app import db
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
-from werkzeug.security import generate_password_hash
 
 auth_bp = Blueprint('auth_bp', __name__)
 
@@ -13,9 +15,23 @@ def register():
         return jsonify({'msg': 'Faltan datos'}), 400
     if User.query.filter_by(email=data['email']).first():
         return jsonify({'msg': 'El email ya está registrado'}), 409
+    
+    # Crear el nuevo usuario
     user = User(username=data['username'], email=data['email'])
     user.set_password(data['password'])
     db.session.add(user)
+    
+    # --- INICIO DE LA CORRECIÓN ---
+    # 2. Crear la cuenta por defecto y asociarla al nuevo usuario
+    default_account = Account(
+        account_name="Efectivo",
+        card="N/A",  # O algún otro valor por defecto
+        balance=0,
+        user=user # Asocia la cuenta directamente al objeto de usuario
+    )
+    db.session.add(default_account)
+    # --- FIN DE LA CORRECIÓN ---
+
     db.session.commit()
     return jsonify({'msg': 'Usuario registrado correctamente'}), 201
 

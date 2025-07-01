@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom/client';
+import { api } from './src/api';
 import { GoogleGenAI, Chat } from '@google/genai';
 import { marked } from 'marked';
 import { AuthProvider, useAuth } from './src/useAuth';
@@ -7,12 +8,14 @@ import { AuthModal } from './src/AuthModal';
 import { CuentasPage } from './src/CuentasPage';
 import { IngresosPage } from './src/IngresosPage';
 import { ServiciosPage } from './src/ServiciosPage';
-import PrestamosPage from './src/PrestamosPage'; 
-import PagosPrestamosPage from './src/PagosPrestamosPage';
-import PagosServiciosPage from './src/PagosServiciosPage';
-import IngresosProgramadosPage from './src/IngresosProgramadosPage';
+import { PrestamosPage } from './src/PrestamosPage'; 
+import { PagosPrestamosPage } from './src/PagosPrestamosPage';
+import { PagosServiciosPage } from './src/PagosServiciosPage';
+import { IngresosProgramadosPage } from './src/IngresosProgramadosPage';
 import { useHashNavigation } from './src/useHashNavigation'; 
 import { Header } from './src/Header'; 
+import './src/datepicker-config'; 
+import { ExpensesPieChart } from './src/ExpensesPieChart'; 
 
 // --- INTERFACES ---
 interface Message {
@@ -34,9 +37,9 @@ const getPageContext = (route: string) => {
             const expensesServicesEl = document.getElementById('expenses-services');
             const expensesLoansEl = document.getElementById('expenses-loans');
             context = `El usuario está viendo su página de Resumen Financiero. Aquí están los datos en pantalla:
-- Ingresos totales este año: ${incomeEl ? incomeEl.innerText : 'No disponible'}
-- Gastos en servicios este año: ${expensesServicesEl ? expensesServicesEl.innerText : 'No disponible'}
-- Gastos en préstamos este año: ${expensesLoansEl ? expensesLoansEl.innerText : 'No disponible'}`;
+- Ingresos totales: ${incomeEl ? incomeEl.innerText : 'No disponible'}
+- Gastos en servicios: ${expensesServicesEl ? expensesServicesEl.innerText : 'No disponible'}
+- Pagos de préstamos: ${expensesLoansEl ? expensesLoansEl.innerText : 'No disponible'}`;
             return context;
         case '#/cuentas':
             elementId = 'cuentas-table';
@@ -76,62 +79,106 @@ const getPageContext = (route: string) => {
 };
 
 // --- COMPONENTES DE PÁGINA ---
-const ResumenPage = () => (
-    <div className="layout-content-container flex flex-col max-w-[960px] flex-1">
+const ResumenPage = () => {
+  const [totalIncome, setTotalIncome] = useState(0);
+  const [totalServiceExpenses, setTotalServiceExpenses] = useState(0);
+  const [totalLoanPayments, setTotalLoanPayments] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const [incomes, services, loanPayments] = await Promise.all([
+          api.getIncomes(),
+          api.getServices(),
+          api.getLoanPayments()
+        ]);
+
+        const incomeSum = incomes.reduce((sum, item) => sum + item.amount, 0);
+        const serviceSum = services.reduce((sum, item) => sum + item.price, 0);
+        const loanPaymentSum = loanPayments.reduce((sum, item) => sum + item.amount, 0);
+
+        setTotalIncome(incomeSum);
+        setTotalServiceExpenses(serviceSum);
+        setTotalLoanPayments(loanPaymentSum);
+
+      } catch (err) {
+        setError("Error al cargar los datos del resumen.");
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const expenseChartData = {
+    labels: ['Gastos (Servicios)', 'Pagos de Préstamos'],
+    datasets: [
+      {
+        label: 'Distribución de Gastos',
+        data: [totalServiceExpenses, totalLoanPayments],
+        backgroundColor: [
+          'rgba(255, 99, 132, 0.6)',
+          'rgba(54, 162, 235, 0.6)',
+        ],
+        borderColor: [
+          'rgba(255, 99, 132, 1)',
+          'rgba(54, 162, 235, 1)',
+        ],
+        borderWidth: 1,
+      },
+    ],
+  };
+
+  if (loading) {
+    return <div>Cargando resumen...</div>;
+  }
+
+  if (error) {
+    return <div className="text-red-500">{error}</div>;
+  }
+
+  return (
+    <div className="layout-content-container flex flex-col max-w-[960px] flex-1 w-full">
         <div className="flex flex-wrap justify-between gap-3 p-4">
             <div className="flex min-w-72 flex-col gap-3">
                 <p className="text-[#121714] tracking-light text-[32px] font-bold leading-tight">Resumen Financiero</p>
                 <p className="text-[#648273] text-sm font-normal leading-normal">Vista general de tus finanzas personales</p>
             </div>
         </div>
-        <div className="flex flex-wrap gap-4 px-4 py-6">
-            <div className="flex min-w-72 flex-1 flex-col gap-2 rounded-xl border border-[#d7e0db] p-6">
-                <p className="text-[#121714] text-base font-medium leading-normal">Ingresos</p>
-                <p id="income-total" className="text-[#121714] tracking-light text-[32px] font-bold leading-tight truncate">$12,500</p>
-                <div className="flex gap-1">
-                    <p className="text-[#648273] text-base font-normal leading-normal">Este año</p>
-                    <p className="text-[#07882c] text-base font-medium leading-normal">+15%</p>
-                </div>
-                <div className="flex min-h-[180px] flex-1 flex-col gap-8 py-4">
-                    <svg width="100%" height="148" viewBox="-3 0 478 150" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
-                        <path d="M0 109C18.1538 109 18.1538 21 36.3077 21C54.4615 21 54.4615 41 72.6154 41C90.7692 41 90.7692 93 108.923 93C127.077 93 127.077 33 145.231 33C163.385 33 163.385 101 181.538 101C199.692 101 199.692 61 217.846 61C236 61 236 45 254.154 45C272.308 45 272.308 121 290.462 121C308.615 121 308.615 149 326.769 149C344.923 149 344.923 1 363.077 1C381.231 1 381.231 81 399.385 81C417.538 81 417.538 129 435.692 129C453.846 129 453.846 25 472 25V149H326.769H0V109Z" fill="url(#paint0_linear_1131_5935)"></path>
-                        <path d="M0 109C18.1538 109 18.1538 21 36.3077 21C54.4615 21 54.4615 41 72.6154 41C90.7692 41 90.7692 93 108.923 93C127.077 93 127.077 33 145.231 33C163.385 33 163.385 101 181.538 101C199.692 101 199.692 61 217.846 61C236 61 236 45 254.154 45C272.308 45 272.308 121 290.462 121C308.615 121 308.615 149 326.769 149C344.923 149 344.923 1 363.077 1C381.231 1 381.231 81 399.385 81C417.538 81 417.538 129 435.692 129C453.846 129 453.846 25 472 25" stroke="#648273" strokeWidth="3" strokeLinecap="round"></path>
-                        <defs><linearGradient id="paint0_linear_1131_5935" x1="236" y1="1" x2="236" y2="149" gradientUnits="userSpaceOnUse"><stop stopColor="#ebefed"></stop><stop offset="1" stopColor="#ebefed" stopOpacity="0"></stop></linearGradient></defs>
-                    </svg>
-                    <div className="flex justify-around"><p className="text-[#648273] text-[13px] font-bold leading-normal tracking-[0.015em]">Ene</p><p className="text-[#648273] text-[13px] font-bold leading-normal tracking-[0.015em]">Feb</p><p className="text-[#648273] text-[13px] font-bold leading-normal tracking-[0.015em]">Mar</p><p className="text-[#648273] text-[13px] font-bold leading-normal tracking-[0.015em]">Abr</p><p className="text-[#648273] text-[13px] font-bold leading-normal tracking-[0.015em]">May</p><p className="text-[#648273] text-[13px] font-bold leading-normal tracking-[0.015em]">Jun</p><p className="text-[#648273] text-[13px] font-bold leading-normal tracking-[0.015em]">Jul</p></div>
-                </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 px-4 py-6">
+            <div className="flex flex-col gap-2 rounded-xl border border-[#d7e0db] p-6 bg-white">
+                <p className="text-[#121714] text-base font-medium leading-normal">Ingresos Totales</p>
+                <p id="income-total" className="text-green-600 tracking-light text-[32px] font-bold leading-tight truncate">
+                  ${totalIncome.toLocaleString('es-CL')}
+                </p>
             </div>
-            <div className="flex min-w-72 flex-1 flex-col gap-2 rounded-xl border border-[#d7e0db] p-6">
+            <div className="flex flex-col gap-2 rounded-xl border border-[#d7e0db] p-6 bg-white">
                 <p className="text-[#121714] text-base font-medium leading-normal">Gastos (Servicios)</p>
-                <p id="expenses-services" className="text-[#121714] tracking-light text-[32px] font-bold leading-tight truncate">$3,200</p>
-                <div className="flex gap-1"><p className="text-[#648273] text-base font-normal leading-normal">Este año</p><p className="text-[#e72a08] text-base font-medium leading-normal">-10%</p></div>
-                <div className="grid min-h-[180px] grid-flow-col gap-6 grid-rows-[1fr_auto] items-end justify-items-center px-3">
-                    <div className="border-[#648273] bg-[#ebefed] border-t-2 w-full" style={{height: '10%'}}></div><p className="text-[#648273] text-[13px] font-bold leading-normal tracking-[0.015em]">Ene</p>
-                    <div className="border-[#648273] bg-[#ebefed] border-t-2 w-full" style={{height: '60%'}}></div><p className="text-[#648273] text-[13px] font-bold leading-normal tracking-[0.015em]">Feb</p>
-                    <div className="border-[#648273] bg-[#ebefed] border-t-2 w-full" style={{height: '100%'}}></div><p className="text-[#648273] text-[13px] font-bold leading-normal tracking-[0.015em]">Mar</p>
-                    <div className="border-[#648273] bg-[#ebefed] border-t-2 w-full" style={{height: '30%'}}></div><p className="text-[#648273] text-[13px] font-bold leading-normal tracking-[0.015em]">Abr</p>
-                    <div className="border-[#648273] bg-[#ebefed] border-t-2 w-full" style={{height: '90%'}}></div><p className="text-[#648273] text-[13px] font-bold leading-normal tracking-[0.015em]">May</p>
-                    <div className="border-[#648273] bg-[#ebefed] border-t-2 w-full" style={{height: '50%'}}></div><p className="text-[#648273] text-[13px] font-bold leading-normal tracking-[0.015em]">Jun</p>
-                    <div className="border-[#648273] bg-[#ebefed] border-t-2 w-full" style={{height: '60%'}}></div><p className="text-[#648273] text-[13px] font-bold leading-normal tracking-[0.015em]">Jul</p>
-                </div>
+                <p id="expenses-services" className="text-red-500 tracking-light text-[32px] font-bold leading-tight truncate">
+                  ${totalServiceExpenses.toLocaleString('es-CL')}
+                </p>
             </div>
-            <div className="flex min-w-72 flex-1 flex-col gap-2 rounded-xl border border-[#d7e0db] p-6">
+            <div className="flex flex-col gap-2 rounded-xl border border-[#d7e0db] p-6 bg-white">
                 <p className="text-[#121714] text-base font-medium leading-normal">Gastos (Préstamos)</p>
-                <p id="expenses-loans" className="text-[#121714] tracking-light text-[32px] font-bold leading-tight truncate">$1,800</p>
-                <div className="flex gap-1"><p className="text-[#648273] text-base font-normal leading-normal">Este año</p><p className="text-[#e72a08] text-base font-medium leading-normal">-5%</p></div>
-                <div className="grid min-h-[180px] grid-flow-col gap-6 grid-rows-[1fr_auto] items-end justify-items-center px-3">
-                    <div className="border-[#648273] bg-[#ebefed] border-t-2 w-full" style={{height: '70%'}}></div><p className="text-[#648273] text-[13px] font-bold leading-normal tracking-[0.015em]">Ene</p>
-                    <div className="border-[#648273] bg-[#ebefed] border-t-2 w-full" style={{height: '40%'}}></div><p className="text-[#648273] text-[13px] font-bold leading-normal tracking-[0.015em]">Feb</p>
-                    <div className="border-[#648273] bg-[#ebefed] border-t-2 w-full" style={{height: '10%'}}></div><p className="text-[#648273] text-[13px] font-bold leading-normal tracking-[0.015em]">Mar</p>
-                    <div className="border-[#648273] bg-[#ebefed] border-t-2 w-full" style={{height: '60%'}}></div><p className="text-[#648273] text-[13px] font-bold leading-normal tracking-[0.015em]">Abr</p>
-                    <div className="border-[#648273] bg-[#ebefed] border-t-2 w-full" style={{height: '60%'}}></div><p className="text-[#648273] text-[13px] font-bold leading-normal tracking-[0.015em]">May</p>
-                    <div className="border-[#648273] bg-[#ebefed] border-t-2 w-full" style={{height: '100%'}}></div><p className="text-[#648273] text-[13px] font-bold leading-normal tracking-[0.015em]">Jun</p>
-                    <div className="border-[#648273] bg-[#ebefed] border-t-2 w-full" style={{height: '60%'}}></div><p className="text-[#648273] text-[13px] font-bold leading-normal tracking-[0.015em]">Jul</p>
-                </div>
+                <p id="expenses-loans" className="text-red-500 tracking-light text-[32px] font-bold leading-tight truncate">
+                  ${totalLoanPayments.toLocaleString('es-CL')}
+                </p>
             </div>
         </div>
+        
+        <div className="px-4 py-6">
+            <ExpensesPieChart chartData={expenseChartData} />
+        </div>
     </div>
-);
+  );
+};
+
 
 const Chatbot = ({ activeRoute }: { activeRoute: string }) => {
     const [isChatOpen, setIsChatOpen] = useState(false);
@@ -275,6 +322,7 @@ const Chatbot = ({ activeRoute }: { activeRoute: string }) => {
     );
 };
 
+
 const App = () => {
   const activeRoute = useHashNavigation();
   const { user, loading } = useAuth();
@@ -308,7 +356,7 @@ const App = () => {
     <div className="relative flex size-full min-h-screen flex-col bg-[#f9fbfa] group/design-root overflow-x-hidden" style={{fontFamily: 'Inter, "Noto Sans", sans-serif'}}>
       <div className="layout-container flex h-full grow flex-col">
         <Header activeRoute={activeRoute} />
-        <main className="px-40 flex flex-1 justify-center py-5">
+        <main className="px-4 lg:px-10 flex flex-1 justify-center py-5">
             {renderPage()}
         </main>
       </div>
@@ -317,9 +365,12 @@ const App = () => {
   );
 };
 
+
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 root.render(
-  <AuthProvider>
-    <App />
-  </AuthProvider>
+  <React.StrictMode>
+    <AuthProvider>
+      <App />
+    </AuthProvider>
+  </React.StrictMode>
 );

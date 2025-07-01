@@ -1,8 +1,8 @@
-"""init
+"""holas
 
-Revision ID: 47e7af7f3aea
+Revision ID: 186c2e82fd53
 Revises: 
-Create Date: 2025-06-29 14:36:49.664844
+Create Date: 2025-07-01 13:58:29.747749
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '47e7af7f3aea'
+revision = '186c2e82fd53'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -32,7 +32,7 @@ def upgrade():
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('account_name', sa.String(length=50), nullable=False),
     sa.Column('card', sa.String(length=50), nullable=False),
-    sa.Column('user_id', sa.Integer(), nullable=True),
+    sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('balance', sa.Float(), nullable=False),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
@@ -59,7 +59,7 @@ def upgrade():
     sa.Column('date', sa.Date(), nullable=False),
     sa.Column('quota', sa.Integer(), nullable=True),
     sa.Column('tea', sa.Float(), nullable=True),
-    sa.Column('reamining_price', sa.Integer(), nullable=False),
+    sa.Column('remaining_price', sa.Integer(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=True),
     sa.Column('account_id', sa.Integer(), nullable=True),
     sa.Column('expiration_date', sa.Date(), nullable=False),
@@ -90,7 +90,7 @@ def upgrade():
     sa.Column('date', sa.Date(), nullable=False),
     sa.Column('category', sa.String(length=30), nullable=False),
     sa.Column('price', sa.Integer(), nullable=False),
-    sa.Column('reamining_price', sa.Integer(), nullable=False),
+    sa.Column('remaining_price', sa.Integer(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=True),
     sa.Column('account_id', sa.Integer(), nullable=True),
     sa.Column('expiration_date', sa.Date(), nullable=False),

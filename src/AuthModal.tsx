@@ -28,7 +28,7 @@ export const AuthModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 p-4">
       <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-sm">
         <h2 className="text-2xl font-bold mb-4 text-center">{isLogin ? 'Iniciar sesión' : 'Crear cuenta'}</h2>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -67,7 +67,7 @@ export const AuthModal: React.FC = () => {
           {(error || localError) && <div className="text-red-600 text-sm">{error || localError}</div>}
           <button
             type="submit"
-            className="bg-[#00a753] text-white font-bold py-2 rounded hover:bg-[#07882c] transition-colors"
+            className="bg-[#00a753] text-white font-bold py-2 rounded hover:bg-[#07882c] transition-colors disabled:bg-gray-400"
             disabled={loading}
           >
             {loading ? 'Procesando...' : isLogin ? 'Entrar' : 'Crear cuenta'}
@@ -75,7 +75,7 @@ export const AuthModal: React.FC = () => {
         </form>
         <div className="mt-4 text-center">
           <button
-            className="text-[#00a753] underline text-sm"
+            className="text-[#00a753] underline text-sm hover:text-green-700"
             onClick={() => setIsLogin(!isLogin)}
             type="button"
           >

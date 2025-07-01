@@ -1,5 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { api } from './api'; // Asumo que api.ts tiene updateIncome y deleteIncome
+import { api } from './api';
+import { Account } from './CuentasPage';
+import { formatDate } from './utils';
+import DatePicker from 'react-datepicker';
+import "react-datepicker/dist/react-datepicker.css";
+import { useAuth } from './useAuth';
 
 interface Income {
   id: number;
@@ -17,15 +22,12 @@ export const IngresosPage: React.FC = () => {
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // Estados para el formulario de creación
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(initialFormState);
-
-  // --- INICIO: Lógica añadida para Edición ---
   const [editId, setEditId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState({ income_name: '', income_date: '', description: '', category: '', amount: 0, account_id: 0 });
-  // --- FIN: Lógica añadida para Edición ---
+  const [availableAccounts, setAvailableAccounts] = useState<Account[]>([]);
+  const { token } = useAuth();
 
   const fetchIncomes = async () => {
     setLoading(true);
@@ -40,16 +42,52 @@ export const IngresosPage: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    fetchIncomes();
-  }, []);
+  const fetchAccounts = async () => {
+    try {
+      const accountsData = await api.getAccounts();
+      setAvailableAccounts(accountsData);
+      if (accountsData.length > 0) {
+        setForm(prev => ({ ...prev, account_id: accountsData[0].id.toString() }));
+      }
+    } catch (e) {
+      console.error("Error al cargar las cuentas", e);
+    }
+  };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  useEffect(() => {
+    if (token) {
+      fetchIncomes();
+      fetchAccounts();
+    }
+  }, [token]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    setEditForm({ ...editForm, [e.target.name]: e.target.valueAsNumber || e.target.value });
+  };
+  
+  const startEdit = (inc: Income) => {
+    setEditId(inc.id);
+    setEditForm({
+      income_name: inc.income_name,
+      income_date: new Date(inc.income_date).toISOString().split('T')[0],
+      description: inc.description,
+      category: inc.category,
+      amount: inc.amount,
+      account_id: inc.account_id,
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!form.account_id || !form.income_date) {
+        setError("Debes seleccionar una cuenta y una fecha.");
+        return;
+    }
+    setError(null);
     try {
       await api.createIncome({
         ...form,
@@ -62,24 +100,6 @@ export const IngresosPage: React.FC = () => {
     } catch (e: any) {
       setError(e.message);
     }
-  };
-
-  // --- INICIO: Funciones añadidas para Edición y Eliminación ---
-
-  const handleEditChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setEditForm({ ...editForm, [e.target.name]: e.target.valueAsNumber || e.target.value });
-  };
-  
-  const startEdit = (inc: Income) => {
-    setEditId(inc.id);
-    setEditForm({
-      income_name: inc.income_name,
-      income_date: new Date(inc.income_date).toISOString().split('T')[0], // Formatear para input date
-      description: inc.description,
-      category: inc.category,
-      amount: inc.amount,
-      account_id: inc.account_id,
-    });
   };
 
   const handleEditSubmit = async (e: React.FormEvent) => {
@@ -109,27 +129,39 @@ export const IngresosPage: React.FC = () => {
     }
   };
 
-  // --- FIN: Funciones añadidas para Edición y Eliminación ---
-
   return (
-    <div className="layout-content-container flex flex-col max-w-[960px] flex-1">
+    <div className="layout-content-container flex flex-col max-w-[960px] flex-1 w-full">
       <div className="flex flex-wrap justify-between gap-3 p-4">
         <p className="text-[#121714] tracking-light text-[32px] font-bold leading-tight min-w-72">Ingresos</p>
         <button
-          className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-8 px-4 bg-[#ebefed] text-[#121714] text-sm font-medium leading-normal"
+          className="flex w-full md:w-auto min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-10 px-4 bg-[#ebefed] text-[#121714] text-sm font-medium leading-normal"
           onClick={() => setShowForm(true)}
         >
           <span className="truncate">Nuevo ingreso</span>
         </button>
       </div>
       {showForm && (
-        <form onSubmit={handleSubmit} className="flex flex-col gap-2 px-4 py-2 bg-white rounded shadow max-w-md mb-4">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3 p-4 bg-white rounded-xl shadow-md max-w-lg mb-6 border border-gray-200">
+          <h3 className="text-lg font-medium text-gray-800">Registrar Nuevo Ingreso</h3>
           <input name="income_name" value={form.income_name} onChange={handleChange} placeholder="Nombre del ingreso" className="border rounded px-3 py-2" required />
-          <input name="income_date" value={form.income_date} onChange={handleChange} type="date" className="border rounded px-3 py-2" required />
+          <DatePicker
+            selected={form.income_date ? new Date(form.income_date) : null}
+            onChange={(date) => setForm(prev => ({ ...prev, income_date: date?.toISOString().split('T')[0] || '' }))}
+            dateFormat="dd/MM/yyyy"
+            placeholderText="dd/mm/yyyy"
+            className="border rounded px-3 py-2 w-full"
+            locale="es"
+            required
+          />
           <input name="description" value={form.description} onChange={handleChange} placeholder="Descripción" className="border rounded px-3 py-2" />
           <input name="category" value={form.category} onChange={handleChange} placeholder="Categoría" className="border rounded px-3 py-2" required />
           <input name="amount" value={form.amount} onChange={handleChange} placeholder="Monto" type="number" className="border rounded px-3 py-2" required />
-          <input name="account_id" value={form.account_id} onChange={handleChange} placeholder="ID de cuenta" type="number" className="border rounded px-3 py-2" required />
+          <select name="account_id" value={form.account_id} onChange={handleChange} className="border rounded px-3 py-2 bg-white" required>
+            <option value="" disabled>-- Asociar a una cuenta --</option>
+            {availableAccounts.map(account => (
+              <option key={account.id} value={account.id}>{account.account_name}</option>
+            ))}
+          </select>
           <div className="flex gap-2">
             <button type="submit" className="bg-[#00a753] text-white font-bold py-2 rounded hover:bg-[#07882c] flex-1">Guardar</button>
             <button type="button" className="bg-gray-200 text-black font-bold py-2 rounded flex-1" onClick={() => setShowForm(false)}>Cancelar</button>
@@ -141,9 +173,10 @@ export const IngresosPage: React.FC = () => {
       ) : error ? (
         <div className="p-4 text-red-600">{error}</div>
       ) : (
-        <div className="px-4 py-3 @container">
-          <div id="ingresos-table" className="flex overflow-hidden rounded-xl border border-[#d7e0db] bg-[#f9fbfa]">
-            <table className="flex-1">
+        <div className="w-full px-4 py-3">
+          {/* VISTA DE TABLA PARA ESCRITORIO */}
+          <div className="hidden lg:flex overflow-hidden rounded-xl border border-[#d7e0db] bg-[#f9fbfa]">
+            <table className="flex-1" id="ingresos-table">
               <thead>
                 <tr className="bg-[#f9fbfa]">
                   <th className="px-4 py-3 text-left text-[#121714] w-[300px] text-sm font-medium">Nombre</th>
@@ -169,7 +202,7 @@ export const IngresosPage: React.FC = () => {
                     ) : (
                       <>
                         <td className="h-[72px] px-4 py-2 text-[#121714]">{inc.income_name}</td>
-                        <td className="h-[72px] px-4 py-2 text-[#648273]">{new Date(inc.income_date).toLocaleDateString()}</td>
+                        <td className="h-[72px] px-4 py-2 text-[#648273]">{formatDate(inc.income_date)}</td>
                         <td className="h-[72px] px-4 py-2 text-[#648273]">{inc.category}</td>
                         <td className="h-[72px] px-4 py-2 text-[#648273] font-medium">${inc.amount.toLocaleString()}</td>
                         <td className="h-[72px] px-4 py-2">
@@ -182,6 +215,25 @@ export const IngresosPage: React.FC = () => {
                 ))}
               </tbody>
             </table>
+          </div>
+          {/* VISTA DE TARJETAS PARA MÓVIL */}
+          <div className="block lg:hidden space-y-4">
+            {incomes.map(inc => (
+              <div key={inc.id} className="bg-white p-4 rounded-lg shadow-md border border-gray-200">
+                <div className="flex justify-between items-start">
+                    <span className="font-bold text-lg text-[#121714]">{inc.income_name}</span>
+                    <span className="text-lg font-bold text-green-600">${inc.amount.toLocaleString()}</span>
+                </div>
+                <div className="mt-2 space-y-1 text-sm">
+                    <p><span className="text-gray-600">Categoría:</span> {inc.category}</p>
+                    <p><span className="text-gray-600">Fecha:</span> {formatDate(inc.income_date)}</p>
+                </div>
+                <div className="mt-4 pt-2 border-t flex justify-end gap-4">
+                    <button onClick={() => startEdit(inc)} className="text-sm text-blue-600 font-medium">Editar</button>
+                    <button onClick={() => handleDelete(inc.id)} className="text-sm text-red-600 font-medium">Eliminar</button>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
