@@ -20,7 +20,8 @@ def create_app(config_class=Config):
     app.config.from_object(config_class)
 
     # Configurar CORS para permitir peticiones desde el frontend
-    CORS(app, resources={r"/api/*": {"origins": "*"}}) # Puedes ajustar origins para producción
+#    CORS(app, resources={r"/api/*": {"origins": "*"}}) # Puedes ajustar origins para producción
+    CORS(app, resources={r"/api/*": {"origins": "finance-dashboard-5.vercel.app"}}) 
 
     # Inicializar extensiones con la app
     db.init_app(app)
