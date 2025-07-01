@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom/client';
+import './index.css';
 import { api } from './src/api';
 import { GoogleGenAI, Chat } from '@google/genai';
 import { marked } from 'marked';
