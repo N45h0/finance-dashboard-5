@@ -2,21 +2,22 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" href="public\favicon.ico" />
-    <meta property="og:title" content="FIN | Gestor Financiero">
-    <meta property="og:description" content="Gestiona tus finanzas personales de forma sencilla y segura.">
-    <meta property="og:image" content="{{ url_for('public', filename='favicon.ico', _external=True) }}">
-    <meta property="og:url" content="{{ request.url_root }}">
-    <meta property="og:type" content="website">
-    <meta property="og:site_name" content="FIN | Gestor Financiero">
-
-    <!-- Favicon y Apple Touch Icon para diferentes dispositivos -->
-    <link rel="shortcut icon" href="{{ url_for('public', filename='favicon.ico') }}" type="image/x-icon">
-    <link rel="icon" type="image/png" href="{{ url_for('public', filename='favicon.ico') }}" sizes="96x96">
-    <link rel="icon" type="image/svg+xml" href="{{ url_for('public', filename='favicon.ico') }}">
-    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('public', filename='favicon.ico') }}">
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>FIN | Gestor Financiero</title>
+
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <meta property="og:title" content="FIN | Gestor Financiero" />
+    <meta
+      property="og:description"
+      content="Gestiona tus finanzas personales de forma sencilla y segura."
+    />
+    <meta property="og:image" content="https://finanzas.alvy.site/favicon.ico" />
+    <meta property="og:url" content="https://finanzas.alvy.site" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="FIN | Gestor Financiero" />
   </head>
   <body>
     <div id="root"></div>
