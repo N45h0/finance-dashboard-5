@@ -1,19 +1,14 @@
-import path from 'path';
-import { defineConfig, loadEnv } from 'vite';
+import path from "path";
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
 
-export default defineConfig(({ mode }) => {
-    // Para desarrollo local, sigue leyendo de .env.local
-    const env = loadEnv(mode, '.', '');
-    
-    return {
-      define: {
-        // Mantenemos la definición para la API del backend
-        'import.meta.env.VITE_API_URL': JSON.stringify(env.VITE_API_URL)
-      },
-      resolve: {
-        alias: {
-          '@': path.resolve(__dirname, '.'),
-        }
-      }
-    };
+// https://vitejs.dev/config/
+export default defineConfig({
+  plugins: [react()],
+  resolve: {
+    alias: {
+      // Se corrige el alias '@' para que apunte a la carpeta /src, que es la convención estándar.
+      "@": path.resolve(__dirname, "./src"),
+    },
+  },
 });
