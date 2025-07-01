@@ -13,6 +13,7 @@ interface AuthContextType {
   login: (email: string, password:string) => Promise<void>;
   register: (username: string, email: string, password: string) => Promise<void>;
   logout: () => void;
+  loginWithToken: (token: string) => void; // <-- AÑADIDO: Para manejar el login de Google
   loading: boolean;
   error: string | null;
 }
@@ -48,7 +49,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setError(e.message);
       removeToken();
       setToken(null);
-      throw e; // Re-lanzamos el error para que el componente que llama sepa que falló
+      throw e;
     } finally {
       setLoading(false);
     }
@@ -64,7 +65,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setError(e.message);
       removeToken();
       setToken(null);
-      throw e; // Re-lanzamos el error
+      throw e;
     } finally {
       setLoading(false);
     }
@@ -76,8 +77,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setToken(null);
   };
 
+  // --- FUNCIÓN AÑADIDA ---
+  // Esta función recibe el token de la URL (después del redirect de Google)
+  // y lo establece como el token activo.
+  const loginWithToken = (newToken: string) => {
+    setTokenInStorage(newToken);
+    setToken(newToken);
+    // El useEffect se encargará de obtener los datos del usuario con api.me()
+  };
+  // --- FIN DE LA FUNCIÓN AÑADIDA ---
+
   return (
-    <AuthContext.Provider value={{ user, token, login, register, logout, loading, error }}>
+    // Se añade loginWithToken al valor del Provider
+    <AuthContext.Provider value={{ user, token, login, register, logout, loginWithToken, loading, error }}>
       {children}
     </AuthContext.Provider>
   );

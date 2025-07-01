@@ -325,7 +325,20 @@ const Chatbot = ({ activeRoute }: { activeRoute: string }) => {
 
 const App = () => {
   const activeRoute = useHashNavigation();
-  const { user, loading } = useAuth();
+  // Renombramos la función de useAuth para evitar conflictos
+  const { user, loading, loginWithToken } = useAuth();
+
+  // --- INICIO DE LA CORRECCIÓN ---
+  useEffect(() => {
+    // Esta parte se ejecuta solo una vez para verificar si hay un token en la URL
+    const hash = window.location.hash;
+    if (hash.startsWith('#token=')) {
+      const token = hash.substring(7); // Extraer el token
+      loginWithToken(token); // Función que debemos añadir a useAuth
+      window.location.hash = '#/resumen'; // Limpiar la URL y redirigir
+    }
+  }, []); // El array vacío asegura que solo se ejecute al montar
+  // --- FIN DE LA CORRECCIÓN ---
 
   if (loading) return <div className="flex items-center justify-center h-screen">Cargando...</div>;
   if (!user) return <AuthModal />;
