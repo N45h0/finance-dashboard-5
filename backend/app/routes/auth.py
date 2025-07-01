@@ -14,19 +14,37 @@ auth_bp = Blueprint('auth_bp', __name__)
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1' # Solo para desarrollo en http
 
 def get_google_flow():
-    return Flow.from_client_secrets_file(
-        client_secrets_file='client_secret_FD-5-746869307344-soosvtten2fl7lv7vsde5rpgu1grs84q.apps.googleusercontent.com.json',
+    client_config = {
+        "web": {
+            "client_id": os.environ.get("GOOGLE_CLIENT_ID"),
+            "project_id": "financedashboard-463316", # Puedes obtener esto de tu archivo JSON original
+            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+            "token_uri": "https://oauth2.googleapis.com/token",
+            "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+            "client_secret": os.environ.get("GOOGLE_CLIENT_SECRET"),
+            "redirect_uris": [
+                # Las redirect URIs se manejan dinámicamente o se configuran en la consola de Google
+            ]
+        }
+    }
+
+    return Flow.from_client_config(
+        client_config=client_config,
         scopes=[
             "https://www.googleapis.com/auth/userinfo.profile",
             "https://www.googleapis.com/auth/userinfo.email",
             "openid"
-        ],
-        redirect_uri=url_for('auth_bp.google_callback', _external=True)
+        ]
     )
 
 @auth_bp.route('/google/login')
 def google_login():
+    # Genera la URL de callback dinámicamente dentro de la solicitud
+    redirect_uri = url_for('auth_bp.google_callback', _external=True)
+    
     flow = get_google_flow()
+    flow.redirect_uri = redirect_uri # Asigna la URI de redirección aquí
+    
     authorization_url, state = flow.authorization_url()
     session['state'] = state
     return redirect(authorization_url)
