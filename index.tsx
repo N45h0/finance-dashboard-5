@@ -13,7 +13,7 @@ import { PagosPrestamosPage } from './src/PagosPrestamosPage';
 import { PagosServiciosPage } from './src/PagosServiciosPage';
 import { IngresosProgramadosPage } from './src/IngresosProgramadosPage';
 import { useHashNavigation } from './src/useHashNavigation'; 
-import { Header } from './src/Header'; 
+import { Header } from './src/Header';
 import './src/datepicker-config'; 
 import { ExpensesPieChart } from './src/ExpensesPieChart'; 
 
@@ -97,9 +97,15 @@ const ResumenPage = () => {
           api.getLoanPayments()
         ]);
 
-        const incomeSum = incomes.reduce((sum, item) => sum + item.amount, 0);
-        const serviceSum = services.reduce((sum, item) => sum + item.price, 0);
-        const loanPaymentSum = loanPayments.reduce((sum, item) => sum + item.amount, 0);
+        // Define los tipos de tus objetos si aún no lo has hecho
+        interface Income { amount: number; [key: string]: any; }
+        interface Service { price: number; [key: string]: any; }
+        interface LoanPayment { amount: number; [key: string]: any; }
+
+        // Añade los tipos en las funciones reduce
+        const incomeSum = incomes.reduce((sum: number, item: Income) => sum + item.amount, 0);
+        const serviceSum = services.reduce((sum: number, item: Service) => sum + item.price, 0);
+        const loanPaymentSum = loanPayments.reduce((sum: number, item: LoanPayment) => sum + item.amount, 0);
 
         setTotalIncome(incomeSum);
         setTotalServiceExpenses(serviceSum);

@@ -15,7 +15,7 @@ export interface Prestamo {
   date: string;
   quota: number | null;
   tea: number | null;
-  remaining_price: number;
+  reamining_price: number;
   account_id: number;
   expiration_date: string;
 }
@@ -28,7 +28,7 @@ const initialState = {
     date: '',
     quota: '',
     tea: '',
-    remaining_price: '',
+    reamining_price: '',
     account_id: '',
     expiration_date: ''
 };
@@ -37,7 +37,18 @@ export const PrestamosPage: React.FC = () => {
   const [prestamos, setPrestamos] = useState<Prestamo[]>([]);
   const [form, setForm] = useState(initialState);
   const [editId, setEditId] = useState<number | null>(null);
-  const [editForm, setEditForm] = useState<Omit<Prestamo, 'id' | 'user_id'>>({ ...initialState, account_id: 0, price: 0, remaining_price: 0, date: '', expiration_date: '' });
+  const [editForm, setEditForm] = useState<Omit<Prestamo, 'id' | 'user_id'>>({
+    loan_name: '',
+    holder: '',
+    price: 0,
+    description: '',
+    date: '',
+    quota: null,
+    tea: null,
+    reamining_price: 0,
+    account_id: 0,
+    expiration_date: '',
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -81,7 +92,12 @@ export const PrestamosPage: React.FC = () => {
   };
 
   const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
+    const target = e.target as HTMLInputElement; // Asumimos que es un input para acceder a 'type'
+    const { name } = target;
+
+    // Si el campo es numérico, lo convertimos; si no, guardamos el string.
+    const value = target.type === 'number' ? target.valueAsNumber : target.value;
+
     setEditForm(prev => ({ ...prev, [name]: value }));
   };
 
@@ -96,7 +112,7 @@ export const PrestamosPage: React.FC = () => {
       await api.createLoan({
         ...form,
         price: Number(form.price),
-        remaining_price: Number(form.remaining_price),
+        reamining_price: Number(form.reamining_price),
         account_id: Number(form.account_id),
         quota: form.quota ? Number(form.quota) : null,
         tea: form.tea ? Number(form.tea) : null,
@@ -132,7 +148,7 @@ export const PrestamosPage: React.FC = () => {
         date: p.date.split('T')[0],
         quota: p.quota,
         tea: p.tea,
-        remaining_price: p.remaining_price,
+        reamining_price: p.reamining_price,
         account_id: p.account_id,
         expiration_date: p.expiration_date.split('T')[0],
     });
@@ -140,21 +156,28 @@ export const PrestamosPage: React.FC = () => {
 
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editId === null) return;
+    if (editId === null) return; // Verificación de seguridad
     setError(null);
+
     try {
-      await api.updateLoan(editId, {
-          ...editForm,
-          price: Number(editForm.price),
-          remaining_price: Number(editForm.remaining_price),
-          account_id: Number(editForm.account_id),
-          quota: editForm.quota ? Number(editForm.quota) : undefined,
-          tea: editForm.tea ? Number(editForm.tea) : undefined,
-      });
+      // Creamos un objeto de payload limpio para enviar a la API
+      const loanPayload = {
+        ...editForm, // Usamos la base del formulario de edición
+        // Nos aseguramos de que los valores numéricos sean números
+        price: Number(editForm.price),
+        reamining_price: Number(editForm.reamining_price),
+        account_id: Number(editForm.account_id),
+        // Y manejamos los valores que pueden ser nulos
+        quota: editForm.quota ? Number(editForm.quota) : null,
+        tea: editForm.tea ? Number(editForm.tea) : null,
+      };
+
+      await api.updateLoan(editId, loanPayload);
+      
       setEditId(null);
       fetchPrestamos();
     } catch (err: any) {
-      setError("Error al actualizar préstamo");
+      setError("Error al actualizar el préstamo");
       console.error(err);
     }
   };
@@ -178,7 +201,7 @@ export const PrestamosPage: React.FC = () => {
                 <input name="loan_name" value={form.loan_name} onChange={handleChange} placeholder="Nombre del préstamo" className="border rounded px-3 py-2" required />
                 <input name="holder" value={form.holder} onChange={handleChange} placeholder="Titular (Ej: Tu nombre)" className="border rounded px-3 py-2" required />
                 <input name="price" value={form.price} onChange={handleChange} placeholder="Monto total" type="number" className="border rounded px-3 py-2" required />
-                <input name="remaining_price" value={form.remaining_price} onChange={handleChange} placeholder="Saldo pendiente" type="number" className="border rounded px-3 py-2" required />
+                <input name="reamining_price" value={form.reamining_price} onChange={handleChange} placeholder="Saldo pendiente" type="number" className="border rounded px-3 py-2" required />
                 <select name="account_id" value={form.account_id} onChange={handleChange} className="border rounded px-3 py-2 bg-white" required>
                   <option value="" disabled>-- Asociar a una cuenta --</option>
                   {availableAccounts.map(account => (
@@ -237,33 +260,57 @@ export const PrestamosPage: React.FC = () => {
                   <th className="px-4 py-3 text-left text-[#121714] text-sm font-medium">Acciones</th>
                 </tr>
               </thead>
-              <tbody>
+<tbody>
                 {prestamos.map(p => (
                   <tr key={p.id} className="border-t border-t-[#d7e0db]">
+                    
+                    {/* --- INICIO DE LA CORRECCIÓN --- */}
+                    {/* Aquí restauramos la lógica condicional para mostrar una vista u otra */}
                     {editId === p.id ? (
-                      <td colSpan={5} className="p-4">
-                        <form onSubmit={handleEditSubmit}>
-                           <h4 className="font-medium mb-2">Editando: {p.loan_name}</h4>
-                           <p className="text-sm text-gray-600 mb-2">El formulario de edición completo debería ir aquí.</p>
-                           <button type="submit" className="text-sm bg-blue-500 text-white px-3 py-1 rounded">Guardar Cambios</button>
-                           <button type="button" onClick={() => setEditId(null)} className="text-sm bg-gray-300 px-3 py-1 rounded ml-2">Cancelar</button>
+                      
+                      // VISTA DE EDICIÓN (el formulario que pegaste)
+                      <td colSpan={5} className="p-2 bg-gray-50">
+                        <form onSubmit={handleEditSubmit} className="grid grid-cols-4 gap-2 items-center">
+                            <input 
+                                name="loan_name" 
+                                value={editForm.loan_name} 
+                                onChange={handleEditChange} 
+                                className="col-span-2 border rounded px-2 py-1" 
+                            />
+                            <input 
+                                name="reamining_price"
+                                value={editForm.reamining_price} 
+                                onChange={handleEditChange} 
+                                type="number" 
+                                className="border rounded px-2 py-1"
+                            />
+                            <div className="flex justify-end gap-2">
+                                <button type="submit" className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700">Guardar</button>
+                                <button type="button" onClick={() => setEditId(null)} className="bg-gray-300 px-3 py-1 rounded text-sm hover:bg-gray-400">Cancelar</button>
+                            </div>
                         </form>
                       </td>
+
                     ) : (
+                      
+                      // VISTA NORMAL (los datos del préstamo)
                       <>
                         <td className="h-[72px] px-4 py-2 text-[#121714]">
                             <div className="font-medium">{p.loan_name}</div>
                             <div className="text-xs text-gray-500">{p.holder}</div>
                         </td>
                         <td className="h-[72px] px-4 py-2 text-[#648273]">${p.price.toLocaleString()}</td>
-                        <td className="h-[72px] px-4 py-2 text-[#648273] font-medium">${p.remaining_price.toLocaleString()}</td>
+                        <td className="h-[72px] px-4 py-2 text-[#648273] font-medium">${p.reamining_price.toLocaleString()}</td>
                         <td className="h-[72px] px-4 py-2 text-[#648273]">{formatDate(p.expiration_date)}</td>
                         <td className="h-[72px] px-4 py-2">
                            <button onClick={() => startEdit(p)} className="text-sm text-blue-600 hover:underline">Editar</button>
                            <button onClick={() => handleDelete(p.id)} className="text-sm text-red-600 hover:underline ml-3">Eliminar</button>
                         </td>
                       </>
+
                     )}
+                    {/* --- FIN DE LA CORRECCIÓN --- */}
+
                   </tr>
                 ))}
               </tbody>
@@ -285,7 +332,7 @@ export const PrestamosPage: React.FC = () => {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600">Saldo Pendiente:</span>
-                    <span className="text-sm font-bold text-red-600">${p.remaining_price.toLocaleString()}</span>
+                    <span className="text-sm font-bold text-red-600">${p.reamining_price.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600">Vencimiento:</span>

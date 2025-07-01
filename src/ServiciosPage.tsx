@@ -13,12 +13,12 @@ export interface Service {
   date: string;
   category: string;
   price: number;
-  remaining_price: number;
+  reamining_price: number;
   account_id: number;
   expiration_date: string;
 }
 
-const initialFormState = { service_name: '', description: '', date: '', category: '', price: '', remaining_price: '', account_id: '', expiration_date: '' };
+const initialFormState = { service_name: '', description: '', date: '', category: '', price: '', reamining_price: '', account_id: '', expiration_date: '' };
 
 export const ServiciosPage: React.FC = () => {
   const [services, setServices] = useState<Service[]>([]);
@@ -27,7 +27,7 @@ export const ServiciosPage: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(initialFormState);
   const [editId, setEditId] = useState<number | null>(null);
-  const [editForm, setEditForm] = useState<Omit<Service, 'id' | 'user_id'>>({ ...initialFormState, price: 0, remaining_price: 0, account_id: 0 });
+  const [editForm, setEditForm] = useState<Omit<Service, 'id' | 'user_id'>>({ ...initialFormState, price: 0, reamining_price: 0, account_id: 0 });
   const [availableAccounts, setAvailableAccounts] = useState<Account[]>([]);
   const { token } = useAuth();
 
@@ -82,7 +82,7 @@ export const ServiciosPage: React.FC = () => {
       await api.createService({
         ...form,
         price: Number(form.price),
-        remaining_price: Number(form.remaining_price),
+        reamining_price: Number(form.reamining_price),
         account_id: Number(form.account_id),
       });
       setForm(initialFormState);
@@ -101,7 +101,7 @@ export const ServiciosPage: React.FC = () => {
       date: new Date(s.date).toISOString().split('T')[0],
       category: s.category,
       price: s.price,
-      remaining_price: s.remaining_price,
+      reamining_price: s.reamining_price,
       account_id: s.account_id,
       expiration_date: new Date(s.expiration_date).toISOString().split('T')[0],
     });
@@ -114,7 +114,7 @@ export const ServiciosPage: React.FC = () => {
       await api.updateService(editId, {
         ...editForm,
         price: Number(editForm.price),
-        remaining_price: Number(editForm.remaining_price),
+        reamining_price: Number(editForm.reamining_price),
         account_id: Number(editForm.account_id),
       });
       setEditId(null);
@@ -163,7 +163,7 @@ export const ServiciosPage: React.FC = () => {
           />
           <input name="category" value={form.category} onChange={handleChange} placeholder="Categoría" className="border rounded px-3 py-2" required />
           <input name="price" value={form.price} onChange={handleChange} placeholder="Monto" type="number" className="border rounded px-3 py-2" required />
-          <input name="remaining_price" value={form.remaining_price} onChange={handleChange} placeholder="Saldo pendiente" type="number" className="border rounded px-3 py-2" required />
+          <input name="reamining_price" value={form.reamining_price} onChange={handleChange} placeholder="Saldo pendiente" type="number" className="border rounded px-3 py-2" required />
           <select name="account_id" value={form.account_id} onChange={handleChange} className="border rounded px-3 py-2 bg-white" required>
             <option value="" disabled>-- Asociar a una cuenta --</option>
             {availableAccounts.map(account => (<option key={account.id} value={account.id}>{account.account_name}</option>))}
@@ -208,7 +208,7 @@ export const ServiciosPage: React.FC = () => {
                         <form onSubmit={handleEditSubmit} className="flex items-center gap-2">
                           <input name="service_name" value={editForm.service_name} onChange={handleEditChange} className="border rounded px-2 py-1 flex-1" />
                           <input name="price" value={editForm.price} onChange={handleEditChange} type="number" className="border rounded px-2 py-1 w-24" />
-                          <input name="remaining_price" value={editForm.remaining_price} onChange={handleEditChange} type="number" className="border rounded px-2 py-1 w-28" />
+                          <input name="reamining_price" value={editForm.reamining_price} onChange={handleEditChange} type="number" className="border rounded px-2 py-1 w-28" />
                           <button type="submit" className="bg-blue-500 text-white px-3 py-1 rounded text-sm">Guardar</button>
                           <button type="button" onClick={() => setEditId(null)} className="bg-gray-300 px-3 py-1 rounded text-sm">Cancelar</button>
                         </form>
@@ -217,7 +217,7 @@ export const ServiciosPage: React.FC = () => {
                       <>
                         <td className="h-[72px] px-4 py-2 text-[#121714]">{s.service_name}</td>
                         <td className="h-[72px] px-4 py-2 text-[#648273]">${s.price.toLocaleString()}</td>
-                        <td className="h-[72px] px-4 py-2 text-[#648273] font-medium">${s.remaining_price.toLocaleString()}</td>
+                        <td className="h-[72px] px-4 py-2 text-[#648273] font-medium">${s.reamining_price.toLocaleString()}</td>
                         <td className="h-[72px] px-4 py-2 text-[#648273]">{s.category}</td>
                         <td className="h-[72px] px-4 py-2 text-[#648273]">{formatDate(s.expiration_date)}</td>
                         <td className="h-[72px] px-4 py-2">
@@ -247,7 +247,7 @@ export const ServiciosPage: React.FC = () => {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600">Saldo Pendiente:</span>
-                    <span className="text-sm font-bold text-red-600">${s.remaining_price.toLocaleString()}</span>
+                    <span className="text-sm font-bold text-red-600">${s.reamining_price.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600">Vencimiento:</span>

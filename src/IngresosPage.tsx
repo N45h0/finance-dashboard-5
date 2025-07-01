@@ -66,9 +66,15 @@ export const IngresosPage: React.FC = () => {
   };
 
   const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setEditForm({ ...editForm, [e.target.name]: e.target.valueAsNumber || e.target.value });
+    // 1. Hacemos una aserción de tipo para que TypeScript sepa qué es e.target
+    const target = e.target as HTMLInputElement;
+
+    // 2. Determinamos el valor correcto dependiendo del tipo de input
+    const value = target.type === 'number' ? target.valueAsNumber : target.value;
+
+    // 3. Actualizamos el estado del formulario
+    setEditForm({ ...editForm, [target.name]: value });
   };
-  
   const startEdit = (inc: Income) => {
     setEditId(inc.id);
     setEditForm({
