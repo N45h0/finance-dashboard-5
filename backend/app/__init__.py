@@ -19,9 +19,16 @@ def create_app(config_class=Config):
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_object(config_class)
 
-    # Configurar CORS para permitir peticiones desde el frontend
-#    CORS(app, resources={r"/api/*": {"origins": "*"}}) # Puedes ajustar origins para producción
-    CORS(app, resources={r"/api/*": {"origins": "finance-dashboard-5.vercel.app"}}) 
+    # --- INICIO DE LA MODIFICACIÓN ---
+    # Define los orígenes permitidos (tu frontend en producción y en desarrollo local)
+    origins = [
+        "https://finance-dashboard-5.vercel.app",
+        "http://localhost:5173"
+    ]
+
+    # Configura CORS para permitir peticiones solo desde los orígenes definidos
+    CORS(app, resources={r"/api/*": {"origins": origins}})
+    # --- FIN DE LA MODIFICACIÓN ---
 
     # Inicializar extensiones con la app
     db.init_app(app)
