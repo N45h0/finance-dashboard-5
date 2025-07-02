@@ -12,7 +12,7 @@ def get_services():
     user_id = get_jwt_identity()
     services = Service.query.filter_by(user_id=user_id).all()
     # --- CORRECCIÓN DE TYPO ---
-    return jsonify([{'id': s.id, 'service_name': s.service_name, 'description': s.description, 'date': s.date.isoformat() if s.date else None, 'category': s.category, 'price': s.price, 'reamining_price': s.reamining_price, 'account_id': s.account_id, 'expiration_date': s.expiration_date.isoformat() if s.expiration_date else None} for s in services])
+    return jsonify([{'id': s.id, 'service_name': s.service_name, 'description': s.description, 'date': s.date.isoformat() if s.date else None, 'category': s.category, 'price': s.price, 'remaining_price': s.remaining_price, 'account_id': s.account_id, 'expiration_date': s.expiration_date.isoformat() if s.expiration_date else None} for s in services])
 
 @services_bp.route('/', methods=['POST'])
 @jwt_required()
@@ -21,7 +21,7 @@ def create_service():
     data = request.get_json()
     
     # --- CORRECCIÓN DE TYPO ---
-    required_fields = ['service_name', 'date', 'category', 'price', 'reamining_price', 'account_id', 'expiration_date']
+    required_fields = ['service_name', 'date', 'category', 'price', 'remaining_price', 'account_id', 'expiration_date']
     if not all(field in data and data[field] not in [None, ''] for field in required_fields):
         return jsonify({'msg': 'Faltan campos obligatorios'}), 400
 
@@ -37,7 +37,7 @@ def create_service():
         date=date_obj,
         category=data['category'],
         price=data['price'],
-        reamining_price=data['reamining_price'], # --- CORRECCIÓN DE TYPO ---
+        remaining_price=data['remaining_price'], # --- CORRECCIÓN DE TYPO ---
         user_id=user_id,
         account_id=data['account_id'],
         expiration_date=expiration_date_obj
@@ -64,7 +64,7 @@ def update_service(service_id):
         return jsonify({'msg': 'Formato de fecha inválido en la actualización.'}), 400
 
     # --- CORRECCIÓN DE TYPO ---
-    for field in ['service_name', 'description', 'date', 'category', 'price', 'reamining_price', 'account_id', 'expiration_date']:
+    for field in ['service_name', 'description', 'date', 'category', 'price', 'remaining_price', 'account_id', 'expiration_date']:
         if field in data:
             setattr(service, field, data[field])
     db.session.commit()

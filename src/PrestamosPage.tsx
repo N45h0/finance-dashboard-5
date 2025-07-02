@@ -15,7 +15,7 @@ export interface Prestamo {
   date: string;
   quota: number | null;
   tea: number | null;
-  reamining_price: number;
+  remaining_price: number;
   account_id: number;
   expiration_date: string;
 }
@@ -28,7 +28,7 @@ const initialState = {
     date: '',
     quota: '',
     tea: '',
-    reamining_price: '',
+    remaining_price: '',
     account_id: '',
     expiration_date: ''
 };
@@ -45,7 +45,7 @@ export const PrestamosPage: React.FC = () => {
     date: '',
     quota: null,
     tea: null,
-    reamining_price: 0,
+    remaining_price: 0,
     account_id: 0,
     expiration_date: '',
   });
@@ -112,7 +112,7 @@ export const PrestamosPage: React.FC = () => {
       await api.createLoan({
         ...form,
         price: Number(form.price),
-        reamining_price: Number(form.reamining_price),
+        remaining_price: Number(form.remaining_price),
         account_id: Number(form.account_id),
         quota: form.quota ? Number(form.quota) : null,
         tea: form.tea ? Number(form.tea) : null,
@@ -148,7 +148,7 @@ export const PrestamosPage: React.FC = () => {
         date: p.date.split('T')[0],
         quota: p.quota,
         tea: p.tea,
-        reamining_price: p.reamining_price,
+        remaining_price: p.remaining_price,
         account_id: p.account_id,
         expiration_date: p.expiration_date.split('T')[0],
     });
@@ -165,7 +165,7 @@ export const PrestamosPage: React.FC = () => {
         ...editForm, // Usamos la base del formulario de edición
         // Nos aseguramos de que los valores numéricos sean números
         price: Number(editForm.price),
-        reamining_price: Number(editForm.reamining_price),
+        remaining_price: Number(editForm.remaining_price),
         account_id: Number(editForm.account_id),
         // Y manejamos los valores que pueden ser nulos
         quota: editForm.quota ? Number(editForm.quota) : null,
@@ -201,7 +201,7 @@ export const PrestamosPage: React.FC = () => {
                 <input name="loan_name" value={form.loan_name} onChange={handleChange} placeholder="Nombre del préstamo" className="border rounded px-3 py-2" required />
                 <input name="holder" value={form.holder} onChange={handleChange} placeholder="Titular (Ej: Tu nombre)" className="border rounded px-3 py-2" required />
                 <input name="price" value={form.price} onChange={handleChange} placeholder="Monto total" type="number" className="border rounded px-3 py-2" required />
-                <input name="reamining_price" value={form.reamining_price} onChange={handleChange} placeholder="Saldo pendiente" type="number" className="border rounded px-3 py-2" required />
+                <input name="remaining_price" value={form.remaining_price} onChange={handleChange} placeholder="Saldo pendiente" type="number" className="border rounded px-3 py-2" required />
                 <select name="account_id" value={form.account_id} onChange={handleChange} className="border rounded px-3 py-2 bg-white" required>
                   <option value="" disabled>-- Asociar a una cuenta --</option>
                   {availableAccounts.map(account => (
@@ -278,8 +278,8 @@ export const PrestamosPage: React.FC = () => {
                                 className="col-span-2 border rounded px-2 py-1" 
                             />
                             <input 
-                                name="reamining_price"
-                                value={editForm.reamining_price} 
+                                name="remaining_price"
+                                value={editForm.remaining_price} 
                                 onChange={handleEditChange} 
                                 type="number" 
                                 className="border rounded px-2 py-1"
@@ -300,7 +300,7 @@ export const PrestamosPage: React.FC = () => {
                             <div className="text-xs text-gray-500">{p.holder}</div>
                         </td>
                         <td className="h-[72px] px-4 py-2 text-[#648273]">${p.price.toLocaleString()}</td>
-                        <td className="h-[72px] px-4 py-2 text-[#648273] font-medium">${p.reamining_price.toLocaleString()}</td>
+                        <td className="h-[72px] px-4 py-2 text-[#648273] font-medium">${p.remaining_price.toLocaleString()}</td>
                         <td className="h-[72px] px-4 py-2 text-[#648273]">{formatDate(p.expiration_date)}</td>
                         <td className="h-[72px] px-4 py-2">
                            <button onClick={() => startEdit(p)} className="text-sm text-blue-600 hover:underline">Editar</button>
@@ -332,7 +332,7 @@ export const PrestamosPage: React.FC = () => {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600">Saldo Pendiente:</span>
-                    <span className="text-sm font-bold text-red-600">${p.reamining_price.toLocaleString()}</span>
+                    <span className="text-sm font-bold text-red-600">${p.remaining_price.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600">Vencimiento:</span>

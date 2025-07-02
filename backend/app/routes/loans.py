@@ -11,7 +11,7 @@ loans_bp = Blueprint('loans_bp', __name__)
 def get_loans():
     user_id = get_jwt_identity()
     loans = Loan.query.filter_by(user_id=user_id).all()
-    return jsonify([{'id': l.id, 'loan_name': l.loan_name, 'holder': l.holder, 'price': l.price, 'description': l.description, 'date': l.date.isoformat() if l.date else None, 'quota': l.quota, 'tea': l.tea, 'reamining_price': l.reamining_price, 'account_id': l.account_id, 'expiration_date': l.expiration_date.isoformat() if l.expiration_date else None} for l in loans])
+    return jsonify([{'id': l.id, 'loan_name': l.loan_name, 'holder': l.holder, 'price': l.price, 'description': l.description, 'date': l.date.isoformat() if l.date else None, 'quota': l.quota, 'tea': l.tea, 'remaining_price': l.remaining_price, 'account_id': l.account_id, 'expiration_date': l.expiration_date.isoformat() if l.expiration_date else None} for l in loans])
 
 @loans_bp.route('/', methods=['POST'])
 @jwt_required()
@@ -19,7 +19,7 @@ def create_loan():
     user_id = get_jwt_identity()
     data = request.get_json()
     
-    required_fields = ['loan_name', 'holder', 'price', 'date', 'reamining_price', 'account_id', 'expiration_date']
+    required_fields = ['loan_name', 'holder', 'price', 'date', 'remaining_price', 'account_id', 'expiration_date']
     if not all(field in data and data[field] not in [None, ''] for field in required_fields):
         return jsonify({'msg': 'Faltan campos obligatorios'}), 400
 
@@ -37,7 +37,7 @@ def create_loan():
         date=date_obj,
         quota=data.get('quota'),
         tea=data.get('tea'),
-        reamining_price=data['reamining_price'],
+        remaining_price=data['remaining_price'],
         user_id=user_id,
         account_id=data['account_id'],
         expiration_date=expiration_date_obj
@@ -63,7 +63,7 @@ def update_loan(loan_id):
     except (ValueError, TypeError):
         return jsonify({'msg': 'Formato de fecha inválido en la actualización.'}), 400
 
-    for field in ['loan_name', 'holder', 'price', 'description', 'date', 'quota', 'tea', 'reamining_price', 'account_id', 'expiration_date']:
+    for field in ['loan_name', 'holder', 'price', 'description', 'date', 'quota', 'tea', 'remaining_price', 'account_id', 'expiration_date']:
         if field in data:
             setattr(loan, field, data[field])
     db.session.commit()

@@ -37,8 +37,8 @@ async function request(endpoint: string, options: RequestInit = {}) {
 
 type AccountPayload = { account_name: string; card: string; balance: number };
 type IncomePayload = { income_name: string; income_date: string; description: string; category: string; amount: number; account_id: number };
-type ServicePayload = { service_name: string; description: string; date: string; category: string; price: number; reamining_price: number; account_id: number; expiration_date: string };
-type LoanPayload = { loan_name: string; holder: string; price: number; description: string | null; date: string; quota: number | null; tea: number | null; reamining_price: number; account_id: number; expiration_date: string; };
+type ServicePayload = { service_name: string; description: string; date: string; category: string; price: number; remaining_price: number; account_id: number; expiration_date: string };
+type LoanPayload = { loan_name: string; holder: string; price: number; description: string | null; date: string; quota: number | null; tea: number | null; remaining_price: number; account_id: number; expiration_date: string; };
 type PaymentPayload = { amount: number; date: string; description: string | null; };
 type ScheduledIncomePayload = { income_name: string; income_date: string; description: string; category: string; next_income: string; amount: number; received_amount: number; pending_amount: number; account_id: number; };
 
