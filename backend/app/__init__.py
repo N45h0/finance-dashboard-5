@@ -23,6 +23,7 @@ def create_app(config_class=Config):
     # Define los orígenes permitidos (tu frontend en producción y en desarrollo local)
     origins = [
         "https://finance-dashboard-5.vercel.app",
+        "https://finanzas.alvy.site",
         "http://localhost:5173"
     ]
 
