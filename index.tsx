@@ -374,6 +374,15 @@ const App = () => {
 
   return (
     <div className="relative flex size-full min-h-screen flex-col bg-[#f9fbfa] group/design-root overflow-x-hidden" style={{fontFamily: 'Inter, "Noto Sans", sans-serif'}}>
+            {/* --- INICIO DE LA PRUEBA DE DEBUGGING --- */}
+      <p style={{
+        position: 'fixed', top: '10px', left: '10px', 
+        padding: '8px', background: 'yellow', color: 'black', 
+        border: '2px solid red', zIndex: 9999
+      }}>
+        VITE_GEMINI_API_KEY: {import.meta.env.VITE_GEMINI_API_KEY ? 'Sí existe' : 'NO EXISTE O ESTÁ VACÍA'}
+      </p>
+      {/* --- FIN DE LA PRUEBA DE DEBUGGING --- */}
       <div className="layout-container flex h-full grow flex-col">
         <Header activeRoute={activeRoute} />
         <main className="px-4 lg:px-10 flex flex-1 justify-center py-5">
