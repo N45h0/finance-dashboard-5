@@ -52,6 +52,12 @@ def google_login():
 @auth_bp.route('/google/callback')
 def google_callback():
     flow = get_google_flow()
+
+    # --- INICIO DE LA CORRECCIÓN ---
+    # Vuelve a definir la redirect_uri para que coincida con la del primer paso
+    flow.redirect_uri = url_for('auth_bp.google_callback', _external=True)
+    # --- FIN DE LA CORRECCIÓN ---
+
     flow.fetch_token(authorization_response=request.url)
 
     credentials = flow.credentials
